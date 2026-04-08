@@ -394,7 +394,7 @@
 
 <script>
   const API_BASE = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders';
-  const ARCS_URL = API_BASE + '/arcs?includeLoot=true';
+  const ARCS_URL = 'https://corsproxy.io/?url=' + encodeURIComponent('https://metaforge.app/api/arc-raiders/arcs?includeLoot=true');
 
   let allArcs = [];
 

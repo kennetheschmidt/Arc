@@ -394,7 +394,7 @@
 
 <script>
   const API_BASE = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders';
-  const ARCS_URL = 'https://corsproxy.io/?url=' + encodeURIComponent('https://metaforge.app/api/arc-raiders/arcs?includeLoot=true');
+  const ARCS_URL = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/arcs' + encodeURIComponent('?includeLoot=true');
 
   let allArcs = [];
 
@@ -404,7 +404,19 @@
       const res = await fetch(ARCS_URL);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      allArcs = json.data || [];
+      let arcs = json.data || [];
+
+      // If loot wasn't included (proxy stripped the query param), retry with a different encoding
+      if (arcs.length && arcs[0].loot === undefined) {
+        const fallbackUrl = 'https://corsproxy.io/?url=' + encodeURIComponent('https://metaforge.app/api/arc-raiders/arcs') + '&includeLoot=true';
+        const r2 = await fetch(fallbackUrl);
+        if (r2.ok) {
+          const j2 = await r2.json();
+          if (j2.data?.[0]?.loot !== undefined) arcs = j2.data;
+        }
+      }
+
+      allArcs = arcs;
       renderGrid(allArcs);
       document.getElementById('status').style.display = 'none';
       document.getElementById('arc-grid').style.display = 'grid';

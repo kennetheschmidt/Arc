@@ -396,7 +396,7 @@
     );
 
     const active   = events.filter(e => e.startTime <= now && e.endTime > now);
-    const cutoff = now + 48 * 60 * 60 * 1000;
+    const cutoff = now + 4 * 60 * 60 * 1000;
     const upcoming = events.filter(e => e.startTime > now && e.startTime <= cutoff);
 
     renderNow(active);

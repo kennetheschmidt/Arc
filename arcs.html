@@ -561,7 +561,7 @@
           </div>
           <div class="arc-info">
             <div class="arc-name">${arc.name}</div>
-            <div class="arc-desc">${arc.description || 'No description available.'}</div>
+            <div class="arc-desc">${(arc.description && arc.description.toLowerCase() !== 'placeholder') ? arc.description : 'No description available.'}</div>
           </div>
         </div>`;
       if (arc.loot && arc.loot.length) {
@@ -605,7 +605,7 @@
     document.getElementById('modal-image').alt        = arc.name;
     document.getElementById('modal-icon').src         = arc.icon;
     document.getElementById('modal-name').textContent = arc.name;
-    document.getElementById('modal-description').textContent = arc.description || 'No description available.';
+    document.getElementById('modal-description').textContent = (arc.description && arc.description.toLowerCase() !== 'placeholder') ? arc.description : 'No description available.';
     document.getElementById('modal-loot-section').style.display = 'none';
     document.getElementById('modal-backdrop').classList.add('open');
     renderLoot(arc);

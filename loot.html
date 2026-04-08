@@ -490,6 +490,17 @@
     render(searchEl.value);
   });
 
+  // Filter by arc if ?arc= param present
+  const arcParam = new URLSearchParams(location.search).get('arc');
+  if (arcParam && ARC_NAMES[arcParam]) {
+    allItems = allItems.filter(item => item.sources.includes(arcParam));
+    const label = document.createElement('div');
+    label.style.cssText = 'padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);font-size:0.82rem;color:var(--muted);display:flex;align-items:center;gap:10px';
+    label.innerHTML = `Showing drops for <strong style="color:var(--text)">${ARC_NAMES[arcParam]}</strong>
+      <a href="loot.html" style="color:var(--accent);font-size:0.75rem;text-decoration:none;border:1px solid var(--accent);border-radius:4px;padding:2px 8px">Show all</a>`;
+    document.getElementById('controls').insertAdjacentElement('afterend', label);
+  }
+
   render();
 </script>
 </body>

@@ -67,12 +67,31 @@
 
     /* ── FILTERS ── */
     #filters {
-      padding: 16px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .filter-row {
+      padding: 10px 24px;
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+
+    .filter-row + .filter-row {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+
+    .filter-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-right: 4px;
+      flex-shrink: 0;
     }
 
     .filter-btn {
@@ -273,7 +292,14 @@
 </header>
 
 <div id="filters">
-  <button class="filter-btn active" data-map="all">All Maps</button>
+  <div class="filter-row" id="map-filters">
+    <span class="filter-label">Map</span>
+    <button class="filter-btn active" data-map="all">All</button>
+  </div>
+  <div class="filter-row" id="event-filters">
+    <span class="filter-label">Event</span>
+    <button class="filter-btn active" data-event="all">All</button>
+  </div>
 </div>
 
 <main>
@@ -289,6 +315,7 @@
 
   let allEvents = [];
   let activeMap = 'all';
+  let activeEvent = 'all';
   let tickTimer = null;
 
   // ── FETCH ─────────────────────────────────────────────────────────────────
@@ -315,20 +342,41 @@
 
   // ── FILTER BUTTONS ────────────────────────────────────────────────────────
   function buildFilterButtons() {
-    const maps = [...new Set(allEvents.map(e => e.map))].sort();
-    const bar = document.getElementById('filters');
+    const maps   = [...new Set(allEvents.map(e => e.map))].sort();
+    const events = [...new Set(allEvents.map(e => e.name))].sort();
+
+    const mapBar   = document.getElementById('map-filters');
+    const eventBar = document.getElementById('event-filters');
+
     maps.forEach(map => {
       const btn = document.createElement('button');
       btn.className = 'filter-btn';
       btn.dataset.map = map;
       btn.textContent = map;
-      bar.appendChild(btn);
+      mapBar.appendChild(btn);
     });
-    bar.addEventListener('click', e => {
-      const btn = e.target.closest('.filter-btn');
+
+    events.forEach(name => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn';
+      btn.dataset.event = name;
+      btn.textContent = name;
+      eventBar.appendChild(btn);
+    });
+
+    mapBar.addEventListener('click', e => {
+      const btn = e.target.closest('[data-map]');
       if (!btn) return;
       activeMap = btn.dataset.map;
-      bar.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+      mapBar.querySelectorAll('[data-map]').forEach(b => b.classList.toggle('active', b === btn));
+      render();
+    });
+
+    eventBar.addEventListener('click', e => {
+      const btn = e.target.closest('[data-event]');
+      if (!btn) return;
+      activeEvent = btn.dataset.event;
+      eventBar.querySelectorAll('[data-event]').forEach(b => b.classList.toggle('active', b === btn));
       render();
     });
   }
@@ -336,9 +384,10 @@
   // ── RENDER ────────────────────────────────────────────────────────────────
   function render() {
     const now = Date.now();
-    const events = activeMap === 'all'
-      ? allEvents
-      : allEvents.filter(e => e.map === activeMap);
+    const events = allEvents.filter(e =>
+      (activeMap   === 'all' || e.map  === activeMap) &&
+      (activeEvent === 'all' || e.name === activeEvent)
+    );
 
     const active   = events.filter(e => e.startTime <= now && e.endTime > now);
     const upcoming = events.filter(e => e.startTime > now);

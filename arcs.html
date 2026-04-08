@@ -257,45 +257,6 @@
     #modal-hp-section,
     #modal-loot-section { display: none; }
 
-    /* HP bar */
-    .hp-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 6px;
-    }
-
-    .hp-label {
-      font-size: 0.78rem;
-      color: var(--muted);
-      width: 80px;
-      flex-shrink: 0;
-    }
-
-    .hp-bar-wrap {
-      flex: 1;
-      height: 8px;
-      background: var(--bg);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .hp-bar {
-      height: 100%;
-      background: #ef4444;
-      border-radius: 4px;
-      transition: width 0.4s ease;
-    }
-
-    .hp-value {
-      font-size: 0.78rem;
-      font-variant-numeric: tabular-nums;
-      color: var(--text);
-      width: 60px;
-      text-align: right;
-      flex-shrink: 0;
-    }
-
     /* Loot table */
     .loot-table {
       width: 100%;
@@ -409,11 +370,6 @@
         <div id="modal-name"></div>
       </div>
 
-      <div class="modal-section" id="modal-hp-section">
-        <div class="modal-section-title">Hit Points</div>
-        <div id="modal-hp"></div>
-      </div>
-
       <div class="modal-section">
         <div class="modal-section-title">Description</div>
         <div id="modal-description"></div>
@@ -426,7 +382,7 @@
             <tr>
               <th>Item</th>
               <th>Rarity</th>
-              <th>Chance</th>
+              <th>Type</th>
             </tr>
           </thead>
           <tbody id="modal-loot"></tbody>
@@ -438,7 +394,7 @@
 
 <script>
   const API_BASE = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders';
-  const ARCS_URL = API_BASE + '/arcs';
+  const ARCS_URL = API_BASE + '/arcs?includeLoot=true';
 
   let allArcs = [];
 
@@ -473,6 +429,7 @@
     arcs.forEach(arc => {
       const card = document.createElement('div');
       card.className = 'arc-card';
+      const lootCount = arc.loot?.length ?? 0;
       card.innerHTML = `
         <img class="arc-image" src="${arc.image}" alt="${arc.name}"
              onerror="this.style.display='none'" loading="lazy" />
@@ -481,7 +438,7 @@
             <img src="${arc.icon}" alt="" onerror="this.style.display='none'" loading="lazy" />
           </div>
           <div class="arc-info">
-            <div class="arc-name">${arc.name}</div>
+            <div class="arc-name">${arc.name}${lootCount ? `<span style="margin-left:8px;font-size:0.65rem;font-weight:600;padding:2px 7px;border-radius:4px;background:#1c2030;color:var(--muted);vertical-align:middle">${lootCount} drops</span>` : ''}</div>
             <div class="arc-desc">${arc.description || 'No description available.'}</div>
           </div>
         </div>`;
@@ -497,59 +454,32 @@
     document.getElementById('modal-icon').src        = arc.icon;
     document.getElementById('modal-name').textContent = arc.name;
     document.getElementById('modal-description').textContent = arc.description || 'No description available.';
-    document.getElementById('modal-hp-section').style.display   = 'none';
     document.getElementById('modal-loot-section').style.display = 'none';
     document.getElementById('modal-backdrop').classList.add('open');
-
-    // Fetch detail with loot included
-    try {
-      const res = await fetch(`${API_BASE}/arcs/${arc.id}?includeLoot=true`);
-      if (res.ok) {
-        const detail = await res.json();
-        renderHP(detail);
-        renderLoot(detail);
-      }
-    } catch (_) { /* detail endpoint unavailable */ }
+    renderLoot(arc);
   }
 
-  function renderHP(detail) {
-    const hp = detail.hitpoints ?? detail.hp ?? detail.health ?? null;
-    if (!hp) return;
-    const section = document.getElementById('modal-hp-section');
-    const container = document.getElementById('modal-hp');
-    section.style.display = '';
+  const RARITY_ORDER = { Legendary: 0, Epic: 1, Rare: 2, Uncommon: 3, Common: 4 };
 
-    if (typeof hp === 'number') {
-      container.innerHTML = buildHPBar('Total HP', hp, hp);
-    } else if (typeof hp === 'object') {
-      const max = Math.max(...Object.values(hp).filter(Number.isFinite));
-      container.innerHTML = Object.entries(hp)
-        .map(([k, v]) => buildHPBar(k, v, max))
-        .join('');
-    }
-  }
-
-  function buildHPBar(label, value, max) {
-    const pct = max > 0 ? Math.round((value / max) * 100) : 0;
-    return `
-      <div class="hp-row">
-        <span class="hp-label">${label}</span>
-        <div class="hp-bar-wrap"><div class="hp-bar" style="width:${pct}%"></div></div>
-        <span class="hp-value">${value.toLocaleString()}</span>
-      </div>`;
-  }
-
-  function renderLoot(detail) {
-    const loot = detail.lootTable ?? detail.loot ?? detail.drops ?? null;
+  function renderLoot(arc) {
+    const loot = arc.loot;
     if (!loot || !loot.length) return;
     const section = document.getElementById('modal-loot-section');
     const tbody   = document.getElementById('modal-loot');
     section.style.display = '';
-    tbody.innerHTML = loot.map(item => `
+    const sorted = [...loot].sort((a, b) =>
+      (RARITY_ORDER[a.item.rarity] ?? 9) - (RARITY_ORDER[b.item.rarity] ?? 9)
+    );
+    tbody.innerHTML = sorted.map(({ item }) => `
       <tr>
-        <td>${item.name ?? item.item ?? '—'}</td>
-        <td><span class="rarity rarity-${(item.rarity ?? 'common').toLowerCase()}">${item.rarity ?? '—'}</span></td>
-        <td>${item.chance != null ? (item.chance * 100).toFixed(1) + '%' : '—'}</td>
+        <td style="display:flex;align-items:center;gap:8px">
+          <img src="${item.icon}" alt="" width="24" height="24"
+               style="border-radius:4px;background:var(--surface);flex-shrink:0"
+               onerror="this.style.display='none'" loading="lazy">
+          ${item.name}
+        </td>
+        <td><span class="rarity rarity-${item.rarity.toLowerCase()}">${item.rarity}</span></td>
+        <td style="color:var(--muted)">${item.item_type}</td>
       </tr>`).join('');
   }
 

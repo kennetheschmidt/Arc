@@ -501,9 +501,9 @@
     document.getElementById('modal-loot-section').style.display = 'none';
     document.getElementById('modal-backdrop').classList.add('open');
 
-    // Try fetching detail endpoint for HP + loot
+    // Fetch detail with loot included
     try {
-      const res = await fetch(`${API_BASE}/arcs/${arc.id}`);
+      const res = await fetch(`${API_BASE}/arcs/${arc.id}?includeLoot=true`);
       if (res.ok) {
         const detail = await res.json();
         renderHP(detail);

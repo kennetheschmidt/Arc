@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arc Raiders – Events</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #141720;
+      --surface2:  #1c2030;
+      --border:    #2a2f42;
+      --accent:    #e8a020;
+      --accent2:   #f0c060;
+      --active:    #22c55e;
+      --text:      #e2e8f0;
+      --muted:     #6b7280;
+      --danger:    #ef4444;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo svg { color: var(--accent); }
+
+    .logo h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .logo h1 span { color: var(--accent); }
+
+    #clock {
+      font-size: 0.9rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── FILTERS ── */
+    #filters {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .filter-row {
+      padding: 10px 24px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-row + .filter-row {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+
+    .filter-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-right: 4px;
+      flex-shrink: 0;
+    }
+
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+
+    /* ── MAIN ── */
+    main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+    /* ── SECTION HEADERS ── */
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--active);
+      box-shadow: 0 0 6px var(--active);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    /* ── TIME SLOT GROUP ── */
+    .time-slot {
+      margin-bottom: 32px;
+    }
+
+    .time-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .time-label .countdown {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .time-label .countdown.soon { color: var(--accent2); }
+
+    /* ── EVENT CARDS GRID ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+
+    /* ── SINGLE CARD ── */
+    .card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .card:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+    .card.active-event {
+      border-color: var(--active);
+      background: #0f1f18;
+    }
+
+    .card.active-event:hover { border-color: #4ade80; }
+
+    .card-icon {
+      width: 44px; height: 44px;
+      border-radius: 8px;
+      background: var(--surface);
+      flex-shrink: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .card-body { min-width: 0; }
+
+    .card-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-map {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-top: 5px;
+      display: inline-block;
+    }
+
+    .badge-active { background: #14532d; color: var(--active); }
+    .badge-soon   { background: #451a03; color: var(--accent2); }
+
+    /* ── ACTIVE NOW SECTION ── */
+    #now-section { margin-bottom: 32px; }
+
+    /* ── LOADING / ERROR ── */
+    #status {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    #status .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #status.error { color: var(--danger); }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 12px 0;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <h1>Arc Raiders <span>Events</span></h1>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <nav style="display:flex;gap:6px">
+      <a href="index.html"    style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);color:var(--muted);font-size:0.82rem;text-decoration:none">Home</a>
+      <a href="events.html"   style="padding:6px 14px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#000;font-size:0.82rem;font-weight:600;text-decoration:none">Events</a>
+      <a href="arcs.html"     style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);color:var(--muted);font-size:0.82rem;text-decoration:none">ARC Units</a>
+      <a href="loot.html"     style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);color:var(--muted);font-size:0.82rem;text-decoration:none">Loot</a>
+      <a href="traders.html"  style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);color:var(--muted);font-size:0.82rem;text-decoration:none">Traders</a>
+    </nav>
+    <div id="clock">--:--:-- --</div>
+  </div>
+</header>
+
+<div id="filters">
+  <div class="filter-row" id="map-filters">
+    <span class="filter-label">Map</span>
+    <button class="filter-btn active" data-map="all">All</button>
+  </div>
+  <div class="filter-row" id="event-filters">
+    <span class="filter-label">Event</span>
+    <button class="filter-btn active" data-event="all">All</button>
+  </div>
+</div>
+
+<main>
+  <div id="status"><div class="spinner"></div>Loading events…</div>
+  <div id="app" style="display:none">
+    <div id="now-section"></div>
+    <div id="upcoming-section"></div>
+  </div>
+</main>
+
+<script>
+  const API = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/events-schedule';
+
+  let allEvents = [];
+  let activeMap = 'all';
+  let activeEvent = 'all';
+  let tickTimer = null;
+
+  // ── FETCH ─────────────────────────────────────────────────────────────────
+  async function loadEvents() {
+    try {
+      const res = await fetch(API);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      allEvents = json.data || [];
+      buildFilterButtons();
+      render();
+      startTick();
+      document.getElementById('status').style.display = 'none';
+      document.getElementById('app').style.display = '';
+    } catch (e) {
+      const el = document.getElementById('status');
+      el.className = 'error';
+      el.innerHTML = `&#9888; Failed to load events: ${e.message}<br>
+        <button onclick="location.reload()" style="margin-top:12px;padding:8px 20px;
+        background:var(--accent);border:none;border-radius:6px;cursor:pointer;
+        font-weight:600;color:#000">Retry</button>`;
+    }
+  }
+
+  // ── FILTER BUTTONS ────────────────────────────────────────────────────────
+  function buildFilterButtons() {
+    const maps   = [...new Set(allEvents.map(e => e.map))].sort();
+    const events = [...new Set(allEvents.map(e => e.name))].sort();
+
+    const mapBar   = document.getElementById('map-filters');
+    const eventBar = document.getElementById('event-filters');
+
+    maps.forEach(map => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn';
+      btn.dataset.map = map;
+      btn.textContent = map;
+      mapBar.appendChild(btn);
+    });
+
+    events.forEach(name => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn';
+      btn.dataset.event = name;
+      btn.textContent = name;
+      eventBar.appendChild(btn);
+    });
+
+    mapBar.addEventListener('click', e => {
+      const btn = e.target.closest('[data-map]');
+      if (!btn) return;
+      activeMap = btn.dataset.map;
+      mapBar.querySelectorAll('[data-map]').forEach(b => b.classList.toggle('active', b === btn));
+      render();
+    });
+
+    eventBar.addEventListener('click', e => {
+      const btn = e.target.closest('[data-event]');
+      if (!btn) return;
+      activeEvent = btn.dataset.event;
+      eventBar.querySelectorAll('[data-event]').forEach(b => b.classList.toggle('active', b === btn));
+      render();
+    });
+  }
+
+  // ── RENDER ────────────────────────────────────────────────────────────────
+  function render() {
+    const now = Date.now();
+    const events = allEvents.filter(e =>
+      (activeMap   === 'all' || e.map  === activeMap) &&
+      (activeEvent === 'all' || e.name === activeEvent)
+    );
+
+    const active   = events.filter(e => e.startTime <= now && e.endTime > now);
+    const cutoff = now + 4 * 60 * 60 * 1000;
+    const upcoming = events.filter(e => e.startTime > now && e.startTime <= cutoff);
+
+    renderNow(active);
+    renderUpcoming(upcoming, now);
+  }
+
+  function renderNow(events) {
+    const el = document.getElementById('now-section');
+    if (!events.length) { el.innerHTML = ''; return; }
+
+    el.innerHTML = `
+      <div class="section-title"><span class="dot"></span> Active Now</div>
+      <div class="cards" id="now-cards"></div>
+    `;
+    const grid = el.querySelector('#now-cards');
+    events.forEach(ev => grid.appendChild(makeCard(ev, true)));
+  }
+
+  function renderUpcoming(events, now) {
+    const el = document.getElementById('upcoming-section');
+    if (!events.length) {
+      el.innerHTML = '<div class="empty">No upcoming events found.</div>';
+      return;
+    }
+
+    // Group by startTime
+    const groups = new Map();
+    events.forEach(ev => {
+      const k = ev.startTime;
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(ev);
+    });
+
+    // Sort groups
+    const sorted = [...groups.entries()].sort((a, b) => a[0] - b[0]);
+
+    const title = `<div class="section-title">Upcoming Events</div>`;
+    const slots = sorted.map(([ts, evList]) => {
+      const msLeft = ts - now;
+      const soon   = msLeft < 60 * 60 * 1000; // < 1 hour
+      const countdownClass = soon ? 'countdown soon' : 'countdown';
+      return `
+        <div class="time-slot">
+          <div class="time-label">
+            ${formatTime(ts)}
+            <span class="${countdownClass}" data-ts="${ts}"></span>
+          </div>
+          <div class="cards">
+            ${evList.map(ev => makeCard(ev, false).outerHTML).join('')}
+          </div>
+        </div>`;
+    }).join('');
+
+    el.innerHTML = title + slots;
+    updateCountdowns(now);
+  }
+
+  // ── CARD ──────────────────────────────────────────────────────────────────
+  function makeCard(ev, isActive) {
+    const div = document.createElement('div');
+    div.className = 'card' + (isActive ? ' active-event' : '');
+    const endMs = ev.endTime - Date.now();
+    const badge = isActive
+      ? `<span class="card-badge badge-active">LIVE · ends ${fmtCountdown(endMs)}</span>`
+      : (ev.startTime - Date.now() < 10 * 60 * 1000
+          ? `<span class="card-badge badge-soon">SOON</span>` : '');
+    div.innerHTML = `
+      <div class="card-icon">
+        <img src="${ev.icon}" alt="${ev.name}" loading="lazy"
+             onerror="this.style.display='none'">
+      </div>
+      <div class="card-body">
+        <div class="card-name">${ev.name}</div>
+        <div class="card-map">${ev.map}</div>
+        ${badge}
+      </div>`;
+    return div;
+  }
+
+  // ── TICK ──────────────────────────────────────────────────────────────────
+  function startTick() {
+    if (tickTimer) clearInterval(tickTimer);
+    tickTimer = setInterval(() => {
+      updateClock();
+      updateCountdowns(Date.now());
+      // Re-render if an event boundary may have passed (check every minute)
+    }, 1000);
+    updateClock();
+
+    // Full re-render every minute to catch event state changes
+    setInterval(() => render(), 60_000);
+  }
+
+  function updateClock() {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function updateCountdowns(now) {
+    document.querySelectorAll('[data-ts]').forEach(el => {
+      const ts = Number(el.dataset.ts);
+      const ms = ts - now;
+      if (ms <= 0) {
+        el.textContent = 'starting…';
+        return;
+      }
+      el.textContent = `in ${fmtCountdown(ms)}`;
+      el.className = ms < 60 * 60 * 1000 ? 'countdown soon' : 'countdown';
+    });
+  }
+
+  // ── UTILS ─────────────────────────────────────────────────────────────────
+  function formatTime(ts) {
+    return new Date(ts).toLocaleString([], {
+      weekday: 'short',
+      month:   'short',
+      day:     'numeric',
+      hour:    '2-digit',
+      minute:  '2-digit',
+    });
+  }
+
+  function fmtCountdown(ms) {
+    if (ms <= 0) return '0s';
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    const h = Math.floor(m / 60);
+    const d = Math.floor(h / 24);
+    if (d > 0)  return `${d}d ${h % 24}h`;
+    if (h > 0)  return `${h}h ${m % 60}m`;
+    if (m > 0)  return `${m}m ${s % 60}s`;
+    return `${s}s`;
+  }
+
+  // ── BOOT ──────────────────────────────────────────────────────────────────
+  loadEvents();
+</script>
+
+<footer style="text-align:center;padding:24px;margin-top:32px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--muted)">
+  Data provided by <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener"
+  style="color:var(--accent);text-decoration:none">metaforge.app</a>
+</footer>
+</body>
+</html>

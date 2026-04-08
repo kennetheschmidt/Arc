@@ -559,12 +559,20 @@
           <div class="arc-info">
             <div class="arc-name">${arc.name}</div>
             <div class="arc-desc">${arc.description || 'No description available.'}</div>
-            ${LOOT[arc.id]?.length ? `<a href="loot.html?arc=${arc.id}" onclick="event.stopPropagation()"
-              style="display:inline-block;margin-top:8px;font-size:0.72rem;font-weight:600;
-              color:var(--accent);text-decoration:none;border:1px solid var(--accent);
-              border-radius:4px;padding:3px 10px">View Loot</a>` : ''}
           </div>
         </div>`;
+      if (arc.loot && arc.loot.length) {
+        const lootLink = document.createElement('a');
+        lootLink.href = 'loot.html?arc=' + arc.id;
+        lootLink.textContent = 'View Loot';
+        lootLink.onclick = e => e.stopPropagation();
+        Object.assign(lootLink.style, {
+          display: 'inline-block', marginTop: '8px', fontSize: '0.72rem',
+          fontWeight: '600', color: 'var(--accent)', textDecoration: 'none',
+          border: '1px solid var(--accent)', borderRadius: '4px', padding: '3px 10px'
+        });
+        card.querySelector('.arc-info').appendChild(lootLink);
+      }
       card.addEventListener('click', () => openModal(arc));
       grid.appendChild(card);
     });

@@ -13,6 +13,7 @@
       --surface2: #1c2030;
       --border:   #2a2f42;
       --accent:   #e8a020;
+      --red:      #e8423a;
       --text:     #e2e8f0;
       --muted:    #6b7280;
     }
@@ -26,45 +27,45 @@
       flex-direction: column;
     }
 
+    /* ── RAINBOW BAR ── */
+    .rainbow-bar {
+      height: 4px;
+      background: linear-gradient(90deg, #e63946, #e8762a, #f4c430, #4ade80, #38bdf8, #a78bfa);
+      flex-shrink: 0;
+    }
+
     /* ── HERO ── */
     .hero {
       text-align: center;
-      padding: 64px 24px 48px;
+      padding: 72px 24px 52px;
+      position: relative;
     }
 
-    .hero-logo {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    .hero-logo svg { color: var(--accent); }
-
-    .hero h1 {
-      font-size: clamp(1.8rem, 6vw, 3rem);
-      font-weight: 800;
+    .wordmark {
+      font-size: clamp(3rem, 12vw, 6rem);
+      font-weight: 900;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+      line-height: 0.9;
+      margin-bottom: 20px;
     }
-    .hero h1 span { color: var(--accent); }
+    .w-arc    { color: #fff; display: block; }
+    .w-raiders { color: var(--red); font-style: italic; display: block; }
 
-    .hero p {
-      margin-top: 12px;
+    .hero-sub {
       color: var(--muted);
-      font-size: 1rem;
-      max-width: 360px;
-      margin-left: auto;
-      margin-right: auto;
-      line-height: 1.6;
+      font-size: 0.92rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 40px;
     }
 
     /* ── CARDS ── */
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 16px;
-      padding: 0 24px 48px;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+      padding: 0 24px 52px;
       max-width: 900px;
       margin: 0 auto;
       width: 100%;
@@ -73,21 +74,37 @@
     .page-card {
       background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 28px 24px;
+      border-radius: 12px;
+      padding: 24px 20px;
       text-decoration: none;
       color: var(--text);
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      transition: border-color 0.15s, transform 0.15s;
+      gap: 10px;
+      transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+      position: relative;
+      overflow: hidden;
     }
-    .page-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .page-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #e63946, #e8762a, #f4c430, #4ade80, #38bdf8, #a78bfa);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .page-card:hover {
+      border-color: var(--border);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .page-card:hover::before { opacity: 1; }
 
     .page-card-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
       background: var(--surface);
       border: 1px solid var(--border);
       display: flex;
@@ -97,22 +114,26 @@
     }
 
     .page-card-title {
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
 
     .page-card-desc {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: var(--muted);
-      line-height: 1.5;
+      line-height: 1.55;
     }
 
     .page-card-arrow {
       margin-top: auto;
-      font-size: 0.78rem;
-      font-weight: 600;
+      padding-top: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
       color: var(--accent);
-      letter-spacing: 0.04em;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
 
     /* ── FOOTER ── */
@@ -129,36 +150,34 @@
 </head>
 <body>
 
+<div class="rainbow-bar"></div>
+
 <div class="hero">
-  <div class="hero-logo">
-    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="none"
-         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round"
-            d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
-    </svg>
+  <div class="wordmark">
+    <span class="w-arc">Arc</span>
+    <span class="w-raiders">Raiders</span>
   </div>
-  <h1>Arc <span>Raiders</span></h1>
-  <p>Game info companion — events, ARC units, loot, and traders.</p>
+  <p class="hero-sub">Game info companion</p>
 </div>
 
 <div class="cards">
 
   <a href="events.html" class="page-card">
     <div class="page-card-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
     </div>
     <div class="page-card-title">Events</div>
-    <div class="page-card-desc">Live event schedule with countdowns. Filter by map and event type. Shows the next 4 hours.</div>
-    <div class="page-card-arrow">View Events &rsaquo;</div>
+    <div class="page-card-desc">Live schedule with countdowns. Filter by map and event type. Next 4 hours.</div>
+    <div class="page-card-arrow">View &rsaquo;</div>
   </a>
 
   <a href="arcs.html" class="page-card">
     <div class="page-card-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
               d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
@@ -166,25 +185,25 @@
     </div>
     <div class="page-card-title">ARC Units</div>
     <div class="page-card-desc">Browse all ARC enemy units with descriptions and loot drops.</div>
-    <div class="page-card-arrow">View ARC Units &rsaquo;</div>
+    <div class="page-card-arrow">View &rsaquo;</div>
   </a>
 
   <a href="loot.html" class="page-card">
     <div class="page-card-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
               d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
       </svg>
     </div>
     <div class="page-card-title">Loot</div>
-    <div class="page-card-desc">Full loot table grouped by rarity. Filter by item name, type, or source ARC unit.</div>
-    <div class="page-card-arrow">View Loot &rsaquo;</div>
+    <div class="page-card-desc">Full loot table by rarity. Filter by item name, type, or ARC source.</div>
+    <div class="page-card-arrow">View &rsaquo;</div>
   </a>
 
   <a href="traders.html" class="page-card">
     <div class="page-card-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round"
               d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.6.6-.2 1.7.7 1.7H17m0 0a2 2 0 100 4 2 2 0 000-4zm-10 2a2 2 0 100 4 2 2 0 000-4z"/>
@@ -192,7 +211,7 @@
     </div>
     <div class="page-card-title">Traders</div>
     <div class="page-card-desc">Browse trader inventories. Tap a trader to see their full item list.</div>
-    <div class="page-card-arrow">View Traders &rsaquo;</div>
+    <div class="page-card-arrow">View &rsaquo;</div>
   </a>
 
 </div>

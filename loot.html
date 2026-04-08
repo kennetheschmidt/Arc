@@ -35,10 +35,12 @@
       z-index: 100;
     }
 
+    .rainbow-bar { height: 4px; background: linear-gradient(90deg,#e63946,#e8762a,#f4c430,#4ade80,#38bdf8,#a78bfa); }
     .logo { display: flex; align-items: center; gap: 10px; }
-    .logo svg { color: var(--accent); }
-    .logo h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
-    .logo h1 span { color: var(--accent); }
+    .wordmark { font-size: 1rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
+    .w-arc { color: #fff; }
+    .w-raiders { color: #e8423a; font-style: italic; }
+    .page-name { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
 
     nav { display: flex; gap: 6px; flex-wrap: wrap; }
     .nav-link {
@@ -190,12 +192,10 @@
 
 <header>
   <div class="logo">
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
-         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round"
-            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/>
-    </svg>
-    <h1>Arc Raiders <span>Loot</span></h1>
+    <div>
+      <div class="wordmark"><span class="w-arc">ARC</span> <span class="w-raiders">Raiders</span></div>
+      <div class="page-name">Loot</div>
+    </div>
   </div>
   <nav>
     <a href="index.html"   class="nav-link">Home</a>
@@ -205,6 +205,7 @@
     <a href="traders.html" class="nav-link">Traders</a>
   </nav>
 </header>
+<div class="rainbow-bar"></div>
 
 <div id="controls">
   <input id="search" type="search" placeholder="Search items…" autocomplete="off" />

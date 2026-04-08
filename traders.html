@@ -470,10 +470,13 @@
   async function loadTraders() {
     try {
       const res = await fetch(PROXY_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}${body ? ': ' + body.slice(0, 120) : ''}`);
+      }
       const json = await res.json();
       allTraders = json.data || json.traders || (Array.isArray(json) ? json : []);
-      if (!allTraders.length) throw new Error('No trader data returned');
+      if (!allTraders.length) throw new Error('No trader data returned — raw: ' + JSON.stringify(json).slice(0, 120));
       renderGrid(allTraders);
       document.getElementById('status').style.display = 'none';
       document.getElementById('trader-grid').style.display = 'grid';

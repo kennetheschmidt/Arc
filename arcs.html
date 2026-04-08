@@ -40,28 +40,12 @@
       z-index: 100;
     }
 
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
+    .logo { display: flex; align-items: center; gap: 12px; }
     .logo svg { color: var(--accent); }
-
-    .logo h1 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
+    .logo h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
     .logo h1 span { color: var(--accent); }
 
-    /* ── NAV ── */
-    nav {
-      display: flex;
-      gap: 6px;
-    }
+    nav { display: flex; gap: 6px; }
 
     .nav-link {
       padding: 6px 14px;
@@ -73,7 +57,6 @@
       text-decoration: none;
       transition: all 0.15s;
     }
-
     .nav-link:hover { border-color: var(--accent); color: var(--accent); }
     .nav-link.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
 
@@ -96,14 +79,12 @@
       outline: none;
       transition: border-color 0.15s;
     }
-
     #search:focus { border-color: var(--accent); }
     #search::placeholder { color: var(--muted); }
 
     /* ── MAIN ── */
     main { padding: 24px; max-width: 1200px; margin: 0 auto; }
 
-    /* ── GRID ── */
     #arc-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -119,7 +100,6 @@
       cursor: pointer;
       transition: border-color 0.15s, transform 0.15s;
     }
-
     .arc-card:hover { border-color: var(--accent); transform: translateY(-2px); }
 
     .arc-image {
@@ -145,16 +125,11 @@
       flex-shrink: 0;
       overflow: hidden;
     }
-
     .arc-icon img { width: 100%; height: 100%; object-fit: contain; }
 
     .arc-info { min-width: 0; }
 
-    .arc-name {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--text);
-    }
+    .arc-name { font-size: 0.95rem; font-weight: 700; color: var(--text); }
 
     .arc-desc {
       font-size: 0.75rem;
@@ -177,7 +152,6 @@
       padding: 24px;
       overflow-y: auto;
     }
-
     #modal-backdrop.open { display: flex; align-items: flex-start; justify-content: center; }
 
     #modal {
@@ -215,17 +189,11 @@
       overflow: hidden;
       flex-shrink: 0;
     }
-
     .modal-icon img { width: 100%; height: 100%; object-fit: contain; }
 
-    #modal-name {
-      font-size: 1.3rem;
-      font-weight: 700;
-    }
+    #modal-name { font-size: 1.3rem; font-weight: 700; }
 
-    .modal-section {
-      margin-top: 16px;
-    }
+    .modal-section { margin-top: 16px; }
 
     .modal-section-title {
       font-size: 0.68rem;
@@ -243,58 +211,6 @@
       white-space: pre-wrap;
     }
 
-    /* HP & Loot placeholders */
-    .coming-soon {
-      font-size: 0.8rem;
-      color: var(--muted);
-      font-style: italic;
-      padding: 12px;
-      border: 1px dashed var(--border);
-      border-radius: 8px;
-      text-align: center;
-    }
-
-    #modal-hp-section,
-    #modal-loot-section { display: none; }
-
-    /* Loot table */
-    .loot-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.8rem;
-    }
-
-    .loot-table th {
-      text-align: left;
-      color: var(--muted);
-      font-weight: 600;
-      padding: 6px 8px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .loot-table td {
-      padding: 7px 8px;
-      border-bottom: 1px solid var(--border);
-      color: var(--text);
-    }
-
-    .loot-table tr:last-child td { border-bottom: none; }
-
-    .rarity {
-      display: inline-block;
-      padding: 1px 7px;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      font-weight: 700;
-    }
-
-    .rarity-common   { background: #374151; color: #9ca3af; }
-    .rarity-uncommon { background: #14532d; color: #4ade80; }
-    .rarity-rare     { background: #1e3a8a; color: #60a5fa; }
-    .rarity-epic     { background: #4a1d96; color: #c084fc; }
-    .rarity-legendary{ background: #78350f; color: var(--accent); }
-
-    /* ── CLOSE BTN ── */
     .modal-close {
       float: right;
       background: transparent;
@@ -305,7 +221,6 @@
       line-height: 1;
       padding: 0 0 4px 8px;
     }
-
     .modal-close:hover { color: var(--text); }
 
     /* ── LOADING / ERROR ── */
@@ -315,7 +230,6 @@
       color: var(--muted);
       font-size: 0.9rem;
     }
-
     #status .spinner {
       width: 32px; height: 32px;
       border: 3px solid var(--border);
@@ -324,7 +238,6 @@
       animation: spin 0.8s linear infinite;
       margin: 0 auto 16px;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
     #status.error { color: var(--danger); }
 
@@ -369,54 +282,25 @@
         <div class="modal-icon"><img id="modal-icon" src="" alt="" /></div>
         <div id="modal-name"></div>
       </div>
-
       <div class="modal-section">
         <div class="modal-section-title">Description</div>
         <div id="modal-description"></div>
-      </div>
-
-      <div class="modal-section" id="modal-loot-section">
-        <div class="modal-section-title">Loot Table</div>
-        <table class="loot-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Rarity</th>
-              <th>Type</th>
-            </tr>
-          </thead>
-          <tbody id="modal-loot"></tbody>
-        </table>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  const API_BASE = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders';
-  const ARCS_URL = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/arcs' + encodeURIComponent('?includeLoot=true');
+  const ARCS_URL = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/arcs';
 
   let allArcs = [];
 
-  // ── FETCH ──────────────────────────────────────────────────────────────────
   async function loadArcs() {
     try {
       const res = await fetch(ARCS_URL);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      let arcs = json.data || [];
-
-      // If loot wasn't included (proxy stripped the query param), retry with a different encoding
-      if (arcs.length && arcs[0].loot === undefined) {
-        const fallbackUrl = 'https://corsproxy.io/?url=' + encodeURIComponent('https://metaforge.app/api/arc-raiders/arcs') + '&includeLoot=true';
-        const r2 = await fetch(fallbackUrl);
-        if (r2.ok) {
-          const j2 = await r2.json();
-          if (j2.data?.[0]?.loot !== undefined) arcs = j2.data;
-        }
-      }
-
-      allArcs = arcs;
+      allArcs = json.data || [];
       renderGrid(allArcs);
       document.getElementById('status').style.display = 'none';
       document.getElementById('arc-grid').style.display = 'grid';
@@ -430,7 +314,6 @@
     }
   }
 
-  // ── RENDER GRID ────────────────────────────────────────────────────────────
   function renderGrid(arcs) {
     const grid = document.getElementById('arc-grid');
     grid.innerHTML = '';
@@ -441,7 +324,6 @@
     arcs.forEach(arc => {
       const card = document.createElement('div');
       card.className = 'arc-card';
-      const lootCount = arc.loot?.length ?? 0;
       card.innerHTML = `
         <img class="arc-image" src="${arc.image}" alt="${arc.name}"
              onerror="this.style.display='none'" loading="lazy" />
@@ -450,7 +332,7 @@
             <img src="${arc.icon}" alt="" onerror="this.style.display='none'" loading="lazy" />
           </div>
           <div class="arc-info">
-            <div class="arc-name">${arc.name}${lootCount ? `<span style="margin-left:8px;font-size:0.65rem;font-weight:600;padding:2px 7px;border-radius:4px;background:#1c2030;color:var(--muted);vertical-align:middle">${lootCount} drops</span>` : ''}</div>
+            <div class="arc-name">${arc.name}</div>
             <div class="arc-desc">${arc.description || 'No description available.'}</div>
           </div>
         </div>`;
@@ -459,40 +341,13 @@
     });
   }
 
-  // ── MODAL ──────────────────────────────────────────────────────────────────
-  async function openModal(arc) {
-    document.getElementById('modal-image').src       = arc.image;
-    document.getElementById('modal-image').alt       = arc.name;
-    document.getElementById('modal-icon').src        = arc.icon;
+  function openModal(arc) {
+    document.getElementById('modal-image').src        = arc.image;
+    document.getElementById('modal-image').alt        = arc.name;
+    document.getElementById('modal-icon').src         = arc.icon;
     document.getElementById('modal-name').textContent = arc.name;
     document.getElementById('modal-description').textContent = arc.description || 'No description available.';
-    document.getElementById('modal-loot-section').style.display = 'none';
     document.getElementById('modal-backdrop').classList.add('open');
-    renderLoot(arc);
-  }
-
-  const RARITY_ORDER = { Legendary: 0, Epic: 1, Rare: 2, Uncommon: 3, Common: 4 };
-
-  function renderLoot(arc) {
-    const loot = arc.loot;
-    if (!loot || !loot.length) return;
-    const section = document.getElementById('modal-loot-section');
-    const tbody   = document.getElementById('modal-loot');
-    section.style.display = '';
-    const sorted = [...loot].sort((a, b) =>
-      (RARITY_ORDER[a.item.rarity] ?? 9) - (RARITY_ORDER[b.item.rarity] ?? 9)
-    );
-    tbody.innerHTML = sorted.map(({ item }) => `
-      <tr>
-        <td style="display:flex;align-items:center;gap:8px">
-          <img src="${item.icon}" alt="" width="24" height="24"
-               style="border-radius:4px;background:var(--surface);flex-shrink:0"
-               onerror="this.style.display='none'" loading="lazy">
-          ${item.name}
-        </td>
-        <td><span class="rarity rarity-${item.rarity.toLowerCase()}">${item.rarity}</span></td>
-        <td style="color:var(--muted)">${item.item_type}</td>
-      </tr>`).join('');
   }
 
   function closeModal() {
@@ -505,13 +360,11 @@
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-  // ── SEARCH ─────────────────────────────────────────────────────────────────
   document.getElementById('search').addEventListener('input', e => {
     const q = e.target.value.toLowerCase();
     renderGrid(allArcs.filter(a => a.name.toLowerCase().includes(q)));
   });
 
-  // ── BOOT ───────────────────────────────────────────────────────────────────
   loadArcs();
 </script>
 </body>

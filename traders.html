@@ -108,8 +108,8 @@
     .trader-card:hover { border-color: var(--accent); transform: translateY(-2px); }
 
     .trader-avatar {
-      width: 52px;
-      height: 52px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
       background: var(--surface);
       border: 2px solid var(--border);
@@ -121,6 +121,14 @@
       font-weight: 700;
       color: var(--accent);
       text-transform: uppercase;
+      overflow: hidden;
+    }
+    .trader-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top;
+      border-radius: 50%;
     }
 
     .trader-info { min-width: 0; }
@@ -412,8 +420,13 @@
       const card = document.createElement('div');
       card.className = 'trader-card';
       const initial = trader.name.charAt(0).toUpperCase();
+      const slug = trader.name.toLowerCase().replace(/\s+/g, '-');
+      const imgUrl = `https://cdn.metaforge.app/arc-raiders/traders/${slug}.webp`;
       card.innerHTML = `
-        <div class="trader-avatar">${initial}</div>
+        <div class="trader-avatar" data-initial="${initial}">
+          <img src="${imgUrl}" alt="${trader.name}"
+               onerror="this.parentElement.innerHTML='${initial}'" />
+        </div>
         <div class="trader-info">
           <div class="trader-name">${trader.name}</div>
           <div class="trader-count"><span>${trader.items.length}</span> item${trader.items.length !== 1 ? 's' : ''}</div>

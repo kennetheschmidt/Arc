@@ -211,6 +211,41 @@
       white-space: pre-wrap;
     }
 
+    /* ── LOOT TABLE ── */
+    #modal-loot-section { display: none; }
+
+    .loot-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .loot-table th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .loot-table td {
+      padding: 7px 8px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .loot-table tr:last-child td { border-bottom: none; }
+
+    .rarity {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .rarity-common    { background: #374151; color: #9ca3af; }
+    .rarity-uncommon  { background: #14532d; color: #4ade80; }
+    .rarity-rare      { background: #1e3a8a; color: #60a5fa; }
+    .rarity-epic      { background: #4a1d96; color: #c084fc; }
+    .rarity-legendary { background: #78350f; color: var(--accent); }
+
     .modal-close {
       float: right;
       background: transparent;
@@ -286,20 +321,38 @@
         <div class="modal-section-title">Description</div>
         <div id="modal-description"></div>
       </div>
+      <div class="modal-section" id="modal-loot-section">
+        <div class="modal-section-title">Loot</div>
+        <table class="loot-table">
+          <thead><tr><th>Item</th><th>Rarity</th><th>Type</th></tr></thead>
+          <tbody id="modal-loot"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-  const ARCS_URL = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/arcs';
+  const DIRECT_URL = 'https://metaforge.app/api/arc-raiders/arcs?includeLoot=true';
+  const PROXY_URL  = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/arcs';
 
   let allArcs = [];
 
+  async function fetchArcs() {
+    // Try direct first — works if metaforge.app sends CORS headers for browser requests
+    try {
+      const res = await fetch(DIRECT_URL);
+      if (res.ok) return res.json();
+    } catch (_) {}
+    // Fall back to proxy (no loot param — proxy strips it)
+    const res = await fetch(PROXY_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
   async function loadArcs() {
     try {
-      const res = await fetch(ARCS_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
+      const json = await fetchArcs();
       allArcs = json.data || [];
       renderGrid(allArcs);
       document.getElementById('status').style.display = 'none';
@@ -341,13 +394,36 @@
     });
   }
 
+  const RARITY_ORDER = { Legendary: 0, Epic: 1, Rare: 2, Uncommon: 3, Common: 4 };
+
   function openModal(arc) {
     document.getElementById('modal-image').src        = arc.image;
     document.getElementById('modal-image').alt        = arc.name;
     document.getElementById('modal-icon').src         = arc.icon;
     document.getElementById('modal-name').textContent = arc.name;
     document.getElementById('modal-description').textContent = arc.description || 'No description available.';
+    document.getElementById('modal-loot-section').style.display = 'none';
     document.getElementById('modal-backdrop').classList.add('open');
+    renderLoot(arc);
+  }
+
+  function renderLoot(arc) {
+    if (!arc.loot?.length) return;
+    const sorted = [...arc.loot].sort((a, b) =>
+      (RARITY_ORDER[a.item.rarity] ?? 9) - (RARITY_ORDER[b.item.rarity] ?? 9)
+    );
+    document.getElementById('modal-loot').innerHTML = sorted.map(({ item }) => `
+      <tr>
+        <td style="display:flex;align-items:center;gap:8px">
+          <img src="${item.icon}" alt="" width="24" height="24"
+               style="border-radius:4px;background:var(--surface);flex-shrink:0"
+               onerror="this.style.display='none'" loading="lazy">
+          ${item.name}
+        </td>
+        <td><span class="rarity rarity-${item.rarity.toLowerCase()}">${item.rarity}</span></td>
+        <td style="color:var(--muted)">${item.item_type}</td>
+      </tr>`).join('');
+    document.getElementById('modal-loot-section').style.display = '';
   }
 
   function closeModal() {

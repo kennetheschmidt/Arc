@@ -427,8 +427,10 @@ async function loadData() {
       const res = await fetch(PROXY + encodeURIComponent(url));
       const json = await res.json();
       rawDebug[mapID] = json;
-      const items = json.data ?? json;
-      return { mapID, mapLabel: MAP_LABELS[mapID] || mapID, items: Array.isArray(items) ? items : [] };
+      // Shape: { "buried-city": { "allData": [...] } }
+      const mapData = json[mapID] || json;
+      const items = mapData.allData || mapData.data || (Array.isArray(mapData) ? mapData : []);
+      return { mapID, mapLabel: MAP_LABELS[mapID] || mapID, items };
     }));
 
     document.getElementById('debugPre').textContent = JSON.stringify(rawDebug, null, 2);
@@ -457,13 +459,15 @@ function processData(maps) {
 
 function normalisePoi(p, mapLabel) {
   return {
-    id:     p.id || p.name || Math.random().toString(36).slice(2),
-    name:   p.name || p.title || p.location || p.label || 'Unknown Location',
-    type:   p.type || p.poi_type || p.category || p.zone || '',
-    map:    mapLabel,
-    loot:   normaliseLoot(p.loot || p.items || p.drops || p.lootTable || []),
-    coords: p.coords || p.position || (p.x !== undefined ? {x: p.x, y: p.y} : null),
-    raw:    p,
+    id:          p.id || Math.random().toString(36).slice(2),
+    name:        p.instanceName || p.name || p.title || 'Unknown',
+    category:    p.category || '',
+    subcategory: p.subcategory || '',
+    map:         mapLabel,
+    locked:      p.behindLockedDoor || false,
+    loot:        normaliseLoot(p.lootAreas || p.loot || p.items || []),
+    coords:      (p.lat !== undefined) ? {x: p.lng, y: p.lat} : null,
+    raw:         p,
   };
 }
 
@@ -521,7 +525,8 @@ function renderPois() {
   if (currentMap !== 'all') filtered = filtered.filter(p => p.map === currentMap);
   if (query) filtered = filtered.filter(p =>
     p.name.toLowerCase().includes(query) ||
-    p.type.toLowerCase().includes(query) ||
+    p.category.toLowerCase().includes(query) ||
+    p.subcategory.toLowerCase().includes(query) ||
     p.loot.some(l => l.name.toLowerCase().includes(query))
   );
 
@@ -537,29 +542,32 @@ function renderPois() {
   filtered.forEach(poi => {
     const card = document.createElement('div');
     card.className = 'poi-card';
+    const subLabel = poi.subcategory
+      ? poi.category + (poi.subcategory !== poi.category ? ' · ' + poi.subcategory : '')
+      : poi.category;
     card.innerHTML = `
       <div class="poi-card-header">
         <div class="poi-name">${esc(poi.name)}</div>
-        ${poi.type ? `<div class="poi-type">${esc(poi.type)}</div>` : ''}
+        <div class="poi-type">${esc(subLabel)}${poi.locked ? ' 🔒' : ''}</div>
       </div>
-      <div class="poi-loot-preview" id="loot-${esc(poi.id)}"></div>
+      <div class="poi-loot-preview"></div>
     `;
     const preview = card.querySelector('.poi-loot-preview');
-    const shown = poi.loot.slice(0, 5);
-    shown.forEach(l => {
-      const chip = document.createElement('span');
-      chip.className = `loot-chip ${l.rarity}`;
-      chip.textContent = l.name;
-      preview.appendChild(chip);
-    });
-    if (poi.loot.length > 5) {
-      const more = document.createElement('span');
-      more.className = 'loot-more';
-      more.textContent = `+${poi.loot.length - 5} more`;
-      preview.appendChild(more);
-    }
-    if (!poi.loot.length) {
-      preview.innerHTML = '<span style="font-size:0.72rem;color:var(--muted)">No loot data</span>';
+    if (poi.loot.length) {
+      poi.loot.slice(0, 5).forEach(l => {
+        const chip = document.createElement('span');
+        chip.className = `loot-chip ${l.rarity}`;
+        chip.textContent = l.name;
+        preview.appendChild(chip);
+      });
+      if (poi.loot.length > 5) {
+        const more = document.createElement('span');
+        more.className = 'loot-more';
+        more.textContent = `+${poi.loot.length - 5} more`;
+        preview.appendChild(more);
+      }
+    } else {
+      preview.innerHTML = `<span style="font-size:0.72rem;color:var(--muted)">${esc(poi.map)}</span>`;
     }
     card.addEventListener('click', () => openModal(poi));
     grid.appendChild(card);
@@ -571,7 +579,8 @@ function renderPois() {
 function openModal(poi) {
   document.getElementById('modalTitle').textContent = poi.name;
   document.getElementById('modalMeta').textContent =
-    [poi.map, poi.type].filter(Boolean).join(' · ') +
+    [poi.map, poi.category, poi.subcategory].filter(Boolean).join(' · ') +
+    (poi.locked ? ' · Behind Locked Door' : '') +
     (poi.coords ? ` · (${Math.round(poi.coords.x)}, ${Math.round(poi.coords.y)})` : '');
 
   const tbody = document.getElementById('modalBody');

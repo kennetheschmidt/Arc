@@ -98,37 +98,33 @@
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 20px;
+      overflow: hidden;
       cursor: pointer;
       transition: border-color 0.15s, transform 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 16px;
     }
     .trader-card:hover { border-color: var(--accent); transform: translateY(-2px); }
 
-    .trader-avatar {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
+    .trader-img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
       background: var(--surface);
-      border: 2px solid var(--border);
-      flex-shrink: 0;
+    }
+    .trader-img-placeholder {
+      width: 100%;
+      height: 160px;
+      background: var(--surface);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.4rem;
+      font-size: 3rem;
       font-weight: 700;
       color: var(--accent);
-      text-transform: uppercase;
-      overflow: hidden;
     }
-    .trader-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: top;
-      border-radius: 50%;
+    .trader-card-body {
+      padding: 14px 16px;
     }
 
     .trader-info { min-width: 0; }
@@ -431,13 +427,11 @@
       const imgUrl = TRADER_IMAGES[trader.name]
         || Object.entries(TRADER_IMAGES).find(([k]) => trader.name.toLowerCase().includes(k.toLowerCase()))?.[1]
         || null;
-      card.innerHTML = `
-        <div class="trader-avatar" data-initial="${initial}">
-          ${imgUrl
-            ? `<img src="${imgUrl}" alt="${trader.name}" onerror="this.parentElement.innerHTML='${initial}'" />`
-            : initial
-          }
-        <div class="trader-info">
+      card.innerHTML = imgUrl
+        ? `<img class="trader-img" src="${imgUrl}" alt="${trader.name}" onerror="this.outerHTML='<div class=trader-img-placeholder>${initial}</div>'" />`
+        : `<div class="trader-img-placeholder">${initial}</div>`;
+      card.innerHTML += `
+        <div class="trader-card-body">
           <div class="trader-name">${trader.name}</div>
           <div class="trader-count"><span>${trader.items.length}</span> item${trader.items.length !== 1 ? 's' : ''}</div>
         </div>`;

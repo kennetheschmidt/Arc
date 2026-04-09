@@ -409,6 +409,14 @@
     }).join('');
   }
 
+  const TRADER_IMAGES = {
+    'Apollo':  'images/traders/apollo.png',
+    'Celeste': 'images/traders/celeste.png',
+    'Lance':   'images/traders/lance.png',
+    'Shani':   'images/traders/shani.png',
+    'Tian':    'images/traders/tian.png',
+  };
+
   function renderGrid(traders) {
     const grid = document.getElementById('trader-grid');
     grid.innerHTML = '';
@@ -420,13 +428,13 @@
       const card = document.createElement('div');
       card.className = 'trader-card';
       const initial = trader.name.charAt(0).toUpperCase();
-      const slug = trader.name.toLowerCase().replace(/\s+/g, '-');
-      const imgUrl = `https://cdn.metaforge.app/arc-raiders/traders/${slug}.webp`;
+      const imgUrl = TRADER_IMAGES[trader.name] || null;
       card.innerHTML = `
         <div class="trader-avatar" data-initial="${initial}">
-          <img src="${imgUrl}" alt="${trader.name}"
-               onerror="this.parentElement.innerHTML='${initial}'" />
-        </div>
+          ${imgUrl
+            ? `<img src="${imgUrl}" alt="${trader.name}" onerror="this.parentElement.innerHTML='${initial}'" />`
+            : initial
+          }
         <div class="trader-info">
           <div class="trader-name">${trader.name}</div>
           <div class="trader-count"><span>${trader.items.length}</span> item${trader.items.length !== 1 ? 's' : ''}</div>

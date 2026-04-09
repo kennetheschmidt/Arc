@@ -20,7 +20,7 @@
 
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg);
+      background: #000;
       color: var(--text);
       min-height: 100vh;
       display: flex;
@@ -28,26 +28,18 @@
     }
 
     /* ── RAINBOW BAR ── */
-    .rainbow-bar {
-      height: 4px;
-      background: linear-gradient(90deg, #e63946, #e8762a, #f4c430, #4ade80, #38bdf8, #a78bfa);
-      flex-shrink: 0;
-    }
+    .rainbow-bar { display: none; }
 
     /* ── HERO ── */
     .hero {
-      text-align: center;
-      padding: 72px 24px 52px;
-      position: relative;
-      background: url('images/logo-bg.webp') center center / contain no-repeat, #000;
-      min-height: 320px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
+      width: 100%;
+      min-height: 50vw;
+      max-height: 60vh;
+      background: url('images/logo-bg.webp') center center / cover no-repeat;
+      flex-shrink: 0;
     }
 
-    /* Hide the text wordmark since it's in the image */
+    /* Hide text since logo image has it */
     .wordmark, .hero-sub { display: none; }
 
     /* ── CARDS ── */

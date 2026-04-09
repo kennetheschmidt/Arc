@@ -428,7 +428,9 @@
       const card = document.createElement('div');
       card.className = 'trader-card';
       const initial = trader.name.charAt(0).toUpperCase();
-      const imgUrl = TRADER_IMAGES[trader.name] || null;
+      const imgUrl = TRADER_IMAGES[trader.name]
+        || Object.entries(TRADER_IMAGES).find(([k]) => trader.name.toLowerCase().includes(k.toLowerCase()))?.[1]
+        || null;
       card.innerHTML = `
         <div class="trader-avatar" data-initial="${initial}">
           ${imgUrl

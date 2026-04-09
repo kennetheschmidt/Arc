@@ -395,8 +395,16 @@
 </div>
 
 <script>
-const PROXY = 'https://corsproxy.io/?url=';
-const API   = 'https://metaforge.app/api/arc-raiders/game-map-data';
+const PROXY   = 'https://corsproxy.io/?url=';
+const BASE    = 'https://metaforge.app/api/game-map-data';
+const TABLE   = 'arc_map_data';
+const MAP_IDS = ['dam', 'spaceport', 'buried-city', 'blue-gate'];
+const MAP_LABELS = {
+  'dam':         'Dam',
+  'spaceport':   'Spaceport',
+  'buried-city': 'Buried City',
+  'blue-gate':   'Blue Gate',
+};
 
 const RARITY_COLOR = {
   common:    '#9ca3af',
@@ -408,90 +416,54 @@ const RARITY_COLOR = {
 
 let allPois = [];
 let currentMap = 'all';
+let rawDebug = {};
 
 // ── FETCH ──────────────────────────────────────────────────────────────────
 
 async function loadData() {
   try {
-    const res  = await fetch(PROXY + encodeURIComponent(API));
-    const json = await res.json();
+    const results = await Promise.all(MAP_IDS.map(async mapID => {
+      const url = `${BASE}?tableID=${TABLE}&mapID=${mapID}`;
+      const res = await fetch(PROXY + encodeURIComponent(url));
+      const json = await res.json();
+      rawDebug[mapID] = json;
+      const items = json.data ?? json;
+      return { mapID, mapLabel: MAP_LABELS[mapID] || mapID, items: Array.isArray(items) ? items : [] };
+    }));
 
-    // Show raw response for debugging
-    document.getElementById('debugPre').textContent = JSON.stringify(json, null, 2);
+    document.getElementById('debugPre').textContent = JSON.stringify(rawDebug, null, 2);
     document.getElementById('debugPanel').style.display = '';
 
-    const raw = json.success !== undefined ? json.data ?? json : json;
-    processData(raw);
+    const maps = results.filter(r => r.items.length > 0);
+    if (!maps.length) {
+      setStatus('No map data returned — see Raw API Response below.');
+      return;
+    }
+    processData(maps);
   } catch (e) {
     setStatus('Failed to load map data: ' + e.message);
   }
 }
 
 // ── PROCESS ────────────────────────────────────────────────────────────────
-// Handles multiple possible API shapes
 
-function processData(raw) {
-  // Shape 1: { maps: [ { name, pois: [...] } ] }
-  // Shape 2: { "MapName": [ pois ] }  (object keyed by map name)
-  // Shape 3: flat array of poi objects with a map/location field
-  // Shape 4: { locations: [...], pois: [...] }
-
-  let maps = [];
-
-  if (Array.isArray(raw)) {
-    // Flat array — group by map field
-    const byMap = {};
-    raw.forEach(item => {
-      const mapName = item.map || item.mapName || item.map_name || 'Unknown';
-      if (!byMap[mapName]) byMap[mapName] = [];
-      byMap[mapName].push(item);
-    });
-    maps = Object.entries(byMap).map(([name, pois]) => ({ name, pois }));
-
-  } else if (raw.maps && Array.isArray(raw.maps)) {
-    maps = raw.maps.map(m => ({ name: m.name || m.id, pois: m.pois || m.locations || [] }));
-
-  } else if (raw.locations || raw.pois) {
-    const items = raw.locations || raw.pois || [];
-    const byMap = {};
-    items.forEach(item => {
-      const mapName = item.map || item.mapName || 'Unknown';
-      if (!byMap[mapName]) byMap[mapName] = [];
-      byMap[mapName].push(item);
-    });
-    maps = Object.entries(byMap).map(([name, pois]) => ({ name, pois }));
-
-  } else {
-    // Object keyed by map name
-    maps = Object.entries(raw).map(([name, pois]) => ({
-      name,
-      pois: Array.isArray(pois) ? pois : []
-    }));
-  }
-
-  if (!maps.length || maps.every(m => !m.pois.length)) {
-    setStatus('Map data loaded but structure is unfamiliar — see Raw API Response below.');
-    return;
-  }
-
-  // Normalise POIs across shapes
+function processData(maps) {
   allPois = maps.flatMap(m =>
-    m.pois.map(p => normalisePoi(p, m.name))
+    m.items.map(p => normalisePoi(p, m.mapLabel))
   );
-
   buildMapTabs(maps);
   renderPois();
 }
 
-function normalisePoi(p, mapName) {
+function normalisePoi(p, mapLabel) {
   return {
-    id:      p.id || p.name || Math.random().toString(36).slice(2),
-    name:    p.name || p.title || p.location || 'Unknown Location',
-    type:    p.type || p.poi_type || p.category || '',
-    map:     p.map || p.mapName || p.map_name || mapName,
-    loot:    normaliseLoot(p.loot || p.items || p.drops || []),
-    coords:  p.coords || p.position || (p.x !== undefined ? {x: p.x, y: p.y} : null),
-    raw:     p,
+    id:     p.id || p.name || Math.random().toString(36).slice(2),
+    name:   p.name || p.title || p.location || p.label || 'Unknown Location',
+    type:   p.type || p.poi_type || p.category || p.zone || '',
+    map:    mapLabel,
+    loot:   normaliseLoot(p.loot || p.items || p.drops || p.lootTable || []),
+    coords: p.coords || p.position || (p.x !== undefined ? {x: p.x, y: p.y} : null),
+    raw:    p,
   };
 }
 
@@ -521,11 +493,12 @@ function buildMapTabs(maps) {
   tabsEl.appendChild(all);
 
   maps.forEach(m => {
+    const label = m.mapLabel || m.name;
     const btn = document.createElement('button');
     btn.className = 'map-tab';
-    btn.textContent = m.name;
-    btn.dataset.map = m.name;
-    btn.addEventListener('click', () => selectMap(m.name, btn));
+    btn.textContent = label;
+    btn.dataset.map = label;
+    btn.addEventListener('click', () => selectMap(label, btn));
     tabsEl.appendChild(btn);
   });
 }

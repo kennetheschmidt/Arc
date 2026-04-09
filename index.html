@@ -39,26 +39,16 @@
       text-align: center;
       padding: 72px 24px 52px;
       position: relative;
+      background: url('images/logo-bg.webp') center center / contain no-repeat, #000;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
     }
 
-    .wordmark {
-      font-size: clamp(3rem, 12vw, 6rem);
-      font-weight: 900;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      line-height: 0.9;
-      margin-bottom: 20px;
-    }
-    .w-arc    { color: #fff; display: block; }
-    .w-raiders { color: var(--red); font-style: italic; display: block; }
-
-    .hero-sub {
-      color: var(--muted);
-      font-size: 0.92rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 40px;
-    }
+    /* Hide the text wordmark since it's in the image */
+    .wordmark, .hero-sub { display: none; }
 
     /* ── CARDS ── */
     .cards {

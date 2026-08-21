@@ -186,6 +186,163 @@
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── CLICKABLE ITEM ── */
+    .loot-item { cursor: pointer; transition: border-color 0.15s, transform 0.12s; }
+    .loot-item:hover { border-color: var(--accent); transform: translateX(3px); }
+
+    /* ── ITEM DETAIL MODAL ── */
+    .item-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .item-modal-overlay.open { display: flex; }
+    .item-modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px 16px 0 0;
+      width: 100%;
+      max-width: 620px;
+      max-height: 82vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .item-modal-head {
+      padding: 18px 18px 0;
+      flex-shrink: 0;
+    }
+    .item-modal-top {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .item-modal-icon {
+      width: 52px; height: 52px;
+      border-radius: 8px;
+      background: var(--surface2);
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .item-modal-title { font-size: 1.05rem; font-weight: 700; }
+    .item-modal-sub { font-size: 0.78rem; color: var(--muted); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    /* ── TABS ── */
+    .item-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .item-tabs::-webkit-scrollbar { display: none; }
+    .item-tab {
+      padding: 10px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+    .item-tab:hover { color: var(--text); }
+    .item-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .item-tab .tab-count {
+      display: inline-block;
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 1px 6px;
+      font-size: 0.65rem;
+      margin-left: 4px;
+    }
+
+    /* ── TAB BODY ── */
+    .item-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .detail-table th {
+      text-align: left;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      padding: 10px 18px 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-table td {
+      padding: 9px 18px;
+      border-bottom: 1px solid rgba(42,47,66,0.5);
+      vertical-align: middle;
+    }
+    .detail-table tr:last-child td { border-bottom: none; }
+    .detail-img {
+      width: 26px; height: 26px;
+      border-radius: 4px;
+      background: var(--surface2);
+      object-fit: contain;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .detail-empty {
+      padding: 32px 18px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    .detail-loading {
+      padding: 32px 18px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    .detail-spinner {
+      width: 24px; height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .item-modal-close {
+      display: block;
+      width: calc(100% - 36px);
+      margin: 12px 18px;
+      padding: 11px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -467,7 +624,7 @@
       `<span class="source-tag">${ARC_NAMES[id] ?? id}</span>`
     ).join('');
     return `
-      <div class="loot-item">
+      <div class="loot-item" data-name="${item.name.replace(/"/g,'&quot;')}">
         <div class="loot-icon">
           <img src="${item.icon}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'">
         </div>
@@ -479,6 +636,7 @@
           </div>
           <div class="loot-sources">${sources}</div>
         </div>
+        <div style="color:var(--muted);font-size:1rem;padding-left:4px;flex-shrink:0">›</div>
       </div>`;
   }
 
@@ -507,6 +665,168 @@
   }
 
   render();
+
+  // ── ITEM DETAIL MODAL ─────────────────────────────────────────────────────
+
+  const PROXY = 'https://corsproxy.io/?url=';
+  const ITEM_API_ENDPOINTS = [
+    id => `https://metaforge.app/api/arc-raiders/items/${id}`,
+    id => `https://metaforge.app/api/arc-raiders/item/${id}`,
+  ];
+
+  function nameToSlug(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  let activeTab = 'used_in';
+  let detailCache = {};
+
+  function openItemModal(item) {
+    const overlay = document.getElementById('itemModalOverlay');
+    document.getElementById('iModalIcon').src  = item.icon || '';
+    document.getElementById('iModalIcon').alt  = item.name;
+    document.getElementById('iModalTitle').textContent = item.name;
+    document.getElementById('iModalSub').innerHTML =
+      `<span class="rarity rarity-${item.rarity.toLowerCase()}">${item.rarity}</span>` +
+      `<span>${item.item_type}</span>`;
+
+    // Reset tabs to loading state
+    ['used_in','dropped_by','recycles_into','recycled_from'].forEach(t => {
+      document.getElementById(`tab-${t}`).querySelector('.tab-count').textContent = '';
+      document.getElementById(`panel-${t}`).innerHTML =
+        '<div class="detail-loading"><div class="detail-spinner"></div>Loading…</div>';
+    });
+    setActiveTab('used_in');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    fetchItemDetail(item);
+  }
+
+  async function fetchItemDetail(item) {
+    const slug = nameToSlug(item.name);
+    if (detailCache[slug]) { populateModal(detailCache[slug]); return; }
+
+    for (const endpointFn of ITEM_API_ENDPOINTS) {
+      try {
+        const res  = await fetch(PROXY + encodeURIComponent(endpointFn(slug)));
+        if (!res.ok) continue;
+        const json = await res.json();
+        const data = json.data ?? json;
+        detailCache[slug] = data;
+        populateModal(data);
+        return;
+      } catch (_) {}
+    }
+    // All failed
+    ['used_in','dropped_by','recycles_into','recycled_from'].forEach(t => {
+      document.getElementById(`panel-${t}`).innerHTML =
+        '<div class="detail-empty">No data available.</div>';
+    });
+  }
+
+  function populateModal(data) {
+    const sections = {
+      used_in:       data.used_in        || data.usedIn        || data.crafting_uses || [],
+      dropped_by:    data.dropped_by     || data.droppedBy     || data.sources       || [],
+      recycles_into: data.recycles_into  || data.recyclesInto  || data.recycle_into  || [],
+      recycled_from: data.recycled_from  || data.recycledFrom  || data.recycle_from  || [],
+    };
+
+    Object.entries(sections).forEach(([key, rows]) => {
+      const tab   = document.getElementById(`tab-${key}`);
+      const panel = document.getElementById(`panel-${key}`);
+      tab.querySelector('.tab-count').textContent = rows.length || '';
+
+      if (!Array.isArray(rows) || !rows.length) {
+        panel.innerHTML = '<div class="detail-empty">None listed.</div>';
+        return;
+      }
+
+      const isDroppedBy = key === 'dropped_by';
+      panel.innerHTML = `
+        <table class="detail-table">
+          <thead><tr>
+            ${isDroppedBy ? '' : '<th>Qty</th>'}
+            <th>Name</th>
+            <th>Type</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(r => {
+              const name = r.name || r.item_name || r.arc_name || r.id || '—';
+              const type = r.type || r.item_type || r.category || '—';
+              const qty  = r.quantity || r.qty || r.count || '';
+              const icon = r.icon || r.image || '';
+              return `<tr>
+                ${isDroppedBy ? '' : `<td style="color:var(--muted);font-size:0.8rem;width:36px">${qty}</td>`}
+                <td>
+                  ${icon ? `<img class="detail-img" src="${icon}" onerror="this.style.display='none'">` : ''}
+                  ${name}
+                </td>
+                <td style="color:var(--muted);font-size:0.78rem">${type}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+    });
+  }
+
+  function setActiveTab(tabKey) {
+    activeTab = tabKey;
+    document.querySelectorAll('.item-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.tab === tabKey));
+    document.querySelectorAll('.tab-panel').forEach(p =>
+      p.classList.toggle('active', p.id === `panel-${tabKey}`));
+  }
+
+  function closeItemModal() {
+    document.getElementById('itemModalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // Event delegation — catch clicks on loot rows
+  document.getElementById('main').addEventListener('click', e => {
+    const row = e.target.closest('.loot-item');
+    if (!row) return;
+    const name = row.dataset.name;
+    // Find item in built index
+    const item = allItems.find(i => i.name === name);
+    if (item) openItemModal(item);
+  });
+
+  document.getElementById('itemModalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('itemModalOverlay')) closeItemModal();
+  });
+  document.querySelectorAll('.item-tab').forEach(t =>
+    t.addEventListener('click', () => setActiveTab(t.dataset.tab)));
 </script>
+
+<!-- Item Detail Modal -->
+<div class="item-modal-overlay" id="itemModalOverlay">
+  <div class="item-modal">
+    <div class="item-modal-head">
+      <div class="item-modal-top">
+        <img class="item-modal-icon" id="iModalIcon" src="" alt="" onerror="this.style.display='none'">
+        <div>
+          <div class="item-modal-title" id="iModalTitle"></div>
+          <div class="item-modal-sub" id="iModalSub"></div>
+        </div>
+      </div>
+      <div class="item-tabs">
+        <div class="item-tab active" data-tab="used_in" id="tab-used_in">Used In<span class="tab-count"></span></div>
+        <div class="item-tab" data-tab="dropped_by" id="tab-dropped_by">Dropped By<span class="tab-count"></span></div>
+        <div class="item-tab" data-tab="recycles_into" id="tab-recycles_into">Recycles Into<span class="tab-count"></span></div>
+        <div class="item-tab" data-tab="recycled_from" id="tab-recycled_from">Recycled From<span class="tab-count"></span></div>
+      </div>
+    </div>
+    <div class="item-modal-body">
+      <div class="tab-panel active" id="panel-used_in"></div>
+      <div class="tab-panel" id="panel-dropped_by"></div>
+      <div class="tab-panel" id="panel-recycles_into"></div>
+      <div class="tab-panel" id="panel-recycled_from"></div>
+    </div>
+    <button class="item-modal-close" onclick="closeItemModal()">Close</button>
+  </div>
+</div>
 </body>
 </html>

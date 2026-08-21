@@ -672,6 +672,10 @@
   const ITEM_API_ENDPOINTS = [
     id => `https://metaforge.app/api/arc-raiders/items/${id}`,
     id => `https://metaforge.app/api/arc-raiders/item/${id}`,
+    id => `https://metaforge.app/api/arc-raiders/database/item/${id}`,
+    id => `https://metaforge.app/api/arc-raiders/loot/${id}`,
+    id => `https://metaforge.app/api/arc-raiders/items?id=${id}`,
+    id => `https://metaforge.app/api/arc-raiders/items?slug=${id}`,
   ];
 
   function nameToSlug(name) {
@@ -707,25 +711,33 @@
     const slug = nameToSlug(item.name);
     if (detailCache[slug]) { populateModal(detailCache[slug]); return; }
 
+    const debugLog = {};
     for (const endpointFn of ITEM_API_ENDPOINTS) {
+      const url = endpointFn(slug);
       try {
-        const res  = await fetch(PROXY + encodeURIComponent(endpointFn(slug)));
+        const res  = await fetch(PROXY + encodeURIComponent(url));
+        const text = await res.text();
+        let json;
+        try { json = JSON.parse(text); } catch(_) { debugLog[url] = `non-JSON: ${text.slice(0,100)}`; continue; }
+        debugLog[url] = json;
         if (!res.ok) continue;
-        const json = await res.json();
         const data = json.data ?? json;
         detailCache[slug] = data;
-        populateModal(data);
+        populateModal(data, debugLog);
         return;
-      } catch (_) {}
+      } catch (e) { debugLog[url] = `error: ${e.message}`; }
     }
-    // All failed
+    // All failed — show raw debug so we can see what came back
+    const debugHtml = `<div class="detail-empty" style="text-align:left;font-size:0.7rem">
+      <div style="color:var(--accent);font-weight:700;margin-bottom:8px">No data found. Raw responses:</div>
+      <pre style="white-space:pre-wrap;word-break:break-all;color:var(--muted)">${JSON.stringify(debugLog,null,2)}</pre>
+    </div>`;
     ['used_in','dropped_by','recycles_into','recycled_from'].forEach(t => {
-      document.getElementById(`panel-${t}`).innerHTML =
-        '<div class="detail-empty">No data available.</div>';
+      document.getElementById(`panel-${t}`).innerHTML = debugHtml;
     });
   }
 
-  function populateModal(data) {
+  function populateModal(data, debugLog) {
     const sections = {
       used_in:       data.used_in        || data.usedIn        || data.crafting_uses || [],
       dropped_by:    data.dropped_by     || data.droppedBy     || data.sources       || [],
@@ -769,6 +781,13 @@
           </tbody>
         </table>`;
     });
+
+    // Debug: append raw keys to used_in panel so we can see the actual API shape
+    const usedInPanel = document.getElementById('panel-used_in');
+    usedInPanel.innerHTML += `<details style="padding:12px 18px;border-top:1px solid var(--border)">
+      <summary style="font-size:0.7rem;color:var(--muted);cursor:pointer">Raw API keys</summary>
+      <pre style="font-size:0.68rem;color:var(--muted);white-space:pre-wrap;word-break:break-all;margin-top:8px">${JSON.stringify(Object.keys(data), null, 2)}\n\n${JSON.stringify(data, null, 2).slice(0, 1200)}</pre>
+    </details>`;
   }
 
   function setActiveTab(tabKey) {

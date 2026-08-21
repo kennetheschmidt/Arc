@@ -600,6 +600,244 @@
     ],
   };
 
+  const ITEM_RELATIONS = {
+    'bastion-cell': {
+      used_in: [{ name: 'Gear Bench Lv3', qty: 6, type: 'Station Upgrade' }, { name: 'Trophy Display', qty: 5, type: 'Project' }],
+      dropped_by: [{ name: 'Bastion' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 2 }, { name: 'Advanced Mechanical Components', qty: 2 }],
+      recycled_from: [],
+    },
+    'bombardier-cell': {
+      used_in: [{ name: 'Refiner Lv3', qty: 6, type: 'Station Upgrade' }, { name: 'Trophy Display', qty: 8, type: 'Project' }],
+      dropped_by: [{ name: 'Bombardier' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 2 }, { name: 'Advanced Mechanical Components', qty: 2 }],
+      recycled_from: [],
+    },
+    'leaper-pulse-unit': {
+      used_in: [{ name: 'Utility Station Lv3', qty: 4, type: 'Station Upgrade' }, { name: 'Trophy Display', qty: 10, type: 'Project' }],
+      dropped_by: [{ name: 'Leaper' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 3 }, { name: 'Advanced Mechanical Components', qty: 2 }],
+      recycled_from: [],
+    },
+    'rocketeer-driver': {
+      used_in: [{ name: 'Explosives Station Lv3', qty: 3, type: 'Station Upgrade' }, { name: 'Trophy Display', qty: 8, type: 'Project' }],
+      dropped_by: [{ name: 'Rocketeer' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 3 }, { name: 'Advanced Electrical Components', qty: 2 }],
+      recycled_from: [],
+    },
+    'matriarch-reactor': {
+      used_in: [{ name: 'Aphelion', qty: 1, type: 'Weapon' }, { name: 'Trophy Display', qty: 3, type: 'Project' }],
+      dropped_by: [{ name: 'Matriarch' }],
+      recycles_into: [{ name: 'Power Rod', qty: 1 }, { name: 'Magnetic Accelerator', qty: 1 }],
+      recycled_from: [],
+    },
+    'queen-reactor': {
+      used_in: [{ name: 'Equalizer', qty: 1, type: 'Weapon' }, { name: 'Jupiter', qty: 1, type: 'Weapon' }, { name: 'Trophy Display', qty: 3, type: 'Project' }],
+      dropped_by: [{ name: 'Queen' }],
+      recycles_into: [{ name: 'Power Rod', qty: 1 }, { name: 'Magnetic Accelerator', qty: 1 }],
+      recycled_from: [],
+    },
+    'comet-igniter': {
+      used_in: [{ name: 'Deadline', qty: 1, type: 'Consumable' }, { name: 'Weather Monitor System', qty: 1, type: 'Project' }],
+      dropped_by: [{ name: 'Comet' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 2 }, { name: 'Crude Explosives', qty: 2 }],
+      recycled_from: [],
+    },
+    'firefly-burner': {
+      used_in: [{ name: 'Trailblazer', qty: 1, type: 'Consumable' }, { name: 'Weather Monitor System', qty: 1, type: 'Project' }],
+      dropped_by: [{ name: 'Firefly' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 2 }, { name: 'Crude Explosives', qty: 2 }],
+      recycled_from: [],
+    },
+    'hornet-driver': {
+      used_in: [{ name: 'Gear Bench Lv2', qty: 5, type: 'Station Upgrade' }],
+      dropped_by: [{ name: 'Hornet' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 2 }, { name: 'Electrical Components', qty: 2 }],
+      recycled_from: [],
+    },
+    'fireball-burner': {
+      used_in: [{ name: 'Flame Spray', qty: 1, type: 'Consumable' }, { name: 'Refiner Lv2', qty: 8, type: 'Station Upgrade' }],
+      dropped_by: [{ name: 'Fireball' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 1 }, { name: 'Crude Explosives', qty: 1 }],
+      recycled_from: [],
+    },
+    'shredder-gyro': {
+      used_in: [{ name: 'Trophy Display', qty: 5, type: 'Project' }],
+      dropped_by: [{ name: 'Shredder' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 3 }, { name: 'Mechanical Components', qty: 3 }],
+      recycled_from: [],
+    },
+    'sentinel-firing-core': {
+      used_in: [{ name: 'Gunsmith Lv3', qty: 4, type: 'Station Upgrade' }],
+      dropped_by: [{ name: 'Sentinel' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 2 }, { name: 'Mechanical Components', qty: 3 }],
+      recycled_from: [],
+    },
+    'snitch-scanner': {
+      used_in: [{ name: 'Utility Station Lv2', qty: 6, type: 'Station Upgrade' }, { name: 'Weather Monitor System', qty: 1, type: 'Project' }],
+      dropped_by: [{ name: 'Snitch' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 1 }, { name: 'Electrical Components', qty: 1 }],
+      recycled_from: [],
+    },
+    'spotter-relay': {
+      used_in: [{ name: 'Soaring Menaces', qty: 10, type: 'Project' }],
+      dropped_by: [{ name: 'Spotter' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 1 }, { name: 'Electrical Components', qty: 2 }],
+      recycled_from: [],
+    },
+    'surveyor-vault': {
+      used_in: [{ name: 'Medical Lab Lv3', qty: 5, type: 'Station Upgrade' }, { name: 'High Gain Antenna', qty: 10, type: 'Project' }],
+      dropped_by: [{ name: 'Surveyor' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 2 }, { name: 'Mechanical Components', qty: 2 }],
+      recycled_from: [],
+    },
+    'tick-pod': {
+      used_in: [{ name: 'Medical Lab Lv2', qty: 8, type: 'Station Upgrade' }],
+      dropped_by: [{ name: 'Tick' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 2 }, { name: 'Chemicals', qty: 2 }],
+      recycled_from: [],
+    },
+    'pop-trigger': {
+      used_in: [{ name: 'Explosives Station Lv2', qty: 5, type: 'Station Upgrade' }],
+      dropped_by: [{ name: 'Pop' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 1 }, { name: 'Crude Explosives', qty: 1 }],
+      recycled_from: [],
+    },
+    'wasp-driver': {
+      used_in: [{ name: 'Gunsmith Lv2', qty: 8, type: 'Station Upgrade' }],
+      dropped_by: [{ name: 'Wasp' }],
+      recycles_into: [{ name: 'ARC Alloy', qty: 1 }, { name: 'Electrical Components', qty: 1 }],
+      recycled_from: [],
+    },
+    'arc-alloy': {
+      used_in: [{ name: 'ARC Motion Core', qty: 8, type: 'Material' }, { name: 'ARC Circuitry', qty: 6, type: 'Material' }, { name: 'High Gain Antenna', qty: 50, type: 'Project' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'Metal Parts', qty: 2 }],
+      recycled_from: [{ name: 'Bastion Cell' }, { name: 'Bombardier Cell' }, { name: 'Leaper Pulse Unit' }, { name: 'Rocketeer Driver' }, { name: 'Comet Igniter' }, { name: 'Firefly Burner' }, { name: 'Hornet Driver' }, { name: 'Fireball Burner' }, { name: 'Shredder Gyro' }, { name: 'Sentinel Firing Core' }, { name: 'Snitch Scanner' }, { name: 'Spotter Relay' }, { name: 'Surveyor Vault' }, { name: 'Tick Pod' }, { name: 'Pop Trigger' }, { name: 'Wasp Driver' }],
+    },
+    'arc-powercell': {
+      used_in: [{ name: 'Shield Recharger', qty: 1, type: 'Consumable' }, { name: 'Refiner Lv1', qty: 5, type: 'Station Upgrade' }],
+      dropped_by: [],
+      recycles_into: [],
+      recycled_from: [{ name: 'Advanced ARC Powercell' }],
+    },
+    'advanced-arc-powercell': {
+      used_in: [{ name: 'Energy Clip', qty: 1, type: 'Consumable' }, { name: 'Surge Shield Recharger', qty: 1, type: 'Consumable' }, { name: 'High Gain Antenna', qty: 15, type: 'Project' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'ARC Powercell', qty: 2 }],
+      recycled_from: [],
+    },
+    'arc-circuitry': {
+      used_in: [{ name: 'Power Rod', qty: 1, type: 'Material' }, { name: 'Deadline', qty: 2, type: 'Consumable' }, { name: 'Refiner Lv3', qty: 10, type: 'Station Upgrade' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'ARC Alloy', qty: 2 }],
+      recycled_from: [],
+    },
+    'arc-motion-core': {
+      used_in: [{ name: 'Magnetic Accelerator', qty: 2, type: 'Material' }, { name: 'Launcher Ammo', qty: 1, type: 'Consumable' }, { name: 'Refiner Lv2', qty: 5, type: 'Station Upgrade' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'ARC Alloy', qty: 2 }],
+      recycled_from: [],
+    },
+    'arc-coolant': {
+      used_in: [{ name: 'High Gain Antenna', qty: 15, type: 'Project' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'Chemicals', qty: 16 }],
+      recycled_from: [],
+    },
+    'arc-thermo-lining': {
+      used_in: [{ name: 'High Gain Antenna', qty: 15, type: 'Project' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'Fabric', qty: 16 }],
+      recycled_from: [],
+    },
+    'arc-flex-rubber': {
+      used_in: [{ name: 'High Gain Antenna', qty: 10, type: 'Project' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'Rubber Parts', qty: 16 }],
+      recycled_from: [],
+    },
+    'arc-performance-steel': {
+      used_in: [{ name: 'High Gain Antenna', qty: 10, type: 'Project' }, { name: 'Trophy Display', qty: 10, type: 'Project' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'Metal Parts', qty: 12 }],
+      recycled_from: [],
+    },
+    'arc-synthetic-resin': {
+      used_in: [{ name: 'High Gain Antenna', qty: 20, type: 'Project' }, { name: 'Trophy Display', qty: 10, type: 'Project' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'Plastic Parts', qty: 14 }],
+      recycled_from: [],
+    },
+    'mechanical-components': {
+      used_in: [{ name: 'Advanced Mechanical Components', qty: 2, type: 'Material' }, { name: 'Gunsmith Lv2', qty: 5, type: 'Station Upgrade' }],
+      dropped_by: [],
+      recycles_into: [],
+      recycled_from: [{ name: 'Shredder Gyro' }, { name: 'Sentinel Firing Core' }, { name: 'Surveyor Vault' }],
+    },
+    'electrical-components': {
+      used_in: [{ name: 'Advanced Electrical Components', qty: 2, type: 'Material' }, { name: 'Surge Shield Recharger', qty: 1, type: 'Consumable' }, { name: 'Gear Bench Lv2', qty: 5, type: 'Station Upgrade' }, { name: 'Utility Station Lv2', qty: 5, type: 'Station Upgrade' }],
+      dropped_by: [],
+      recycles_into: [],
+      recycled_from: [{ name: 'Hornet Driver' }, { name: 'Snitch Scanner' }, { name: 'Spotter Relay' }, { name: 'Wasp Driver' }],
+    },
+    'advanced-mechanical-components': {
+      used_in: [{ name: 'Magnetic Accelerator', qty: 2, type: 'Material' }, { name: 'Gunsmith Lv3', qty: 5, type: 'Station Upgrade' }],
+      dropped_by: [],
+      recycles_into: [],
+      recycled_from: [{ name: 'Bastion Cell' }, { name: 'Bombardier Cell' }, { name: 'Leaper Pulse Unit' }, { name: 'Magnetic Accelerator' }],
+    },
+    'advanced-electrical-components': {
+      used_in: [{ name: 'Utility Station Lv3', qty: 5, type: 'Station Upgrade' }, { name: 'Gear Bench Lv3', qty: 5, type: 'Station Upgrade' }, { name: 'Energy Clip', qty: 1, type: 'Consumable' }, { name: 'Explosive Mine', qty: 1, type: 'Consumable' }],
+      dropped_by: [],
+      recycles_into: [],
+      recycled_from: [{ name: 'Rocketeer Driver' }],
+    },
+    'explosive-compound': {
+      used_in: [{ name: 'Deadline', qty: 3, type: 'Consumable' }, { name: 'Explosives Station Lv3', qty: 5, type: 'Station Upgrade' }],
+      dropped_by: [],
+      recycles_into: [],
+      recycled_from: [{ name: 'Crude Explosives' }],
+    },
+    'crude-explosives': {
+      used_in: [{ name: 'Explosive Compound', qty: 2, type: 'Material' }, { name: 'Trailblazer', qty: 2, type: 'Consumable' }, { name: 'Launcher Ammo', qty: 2, type: 'Consumable' }, { name: 'Explosives Station Lv2', qty: 5, type: 'Station Upgrade' }],
+      dropped_by: [],
+      recycles_into: [],
+      recycled_from: [{ name: 'Comet Igniter' }, { name: 'Firefly Burner' }, { name: 'Fireball Burner' }, { name: 'Pop Trigger' }],
+    },
+    'simple-gun-parts': {
+      used_in: [{ name: 'Medium Gun Parts', qty: 4, type: 'Material' }, { name: 'Heavy Gun Parts', qty: 4, type: 'Material' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'Metal Parts', qty: 2 }],
+      recycled_from: [{ name: 'Heavy Gun Parts' }],
+    },
+    'medium-gun-parts': { used_in: [], dropped_by: [], recycles_into: [], recycled_from: [{ name: 'Simple Gun Parts' }] },
+    'heavy-gun-parts': { used_in: [], dropped_by: [], recycles_into: [{ name: 'Simple Gun Parts', qty: 2 }], recycled_from: [] },
+    'sensors': {
+      used_in: [{ name: 'Explosive Mine', qty: 3, type: 'Consumable' }, { name: 'Tagging Grenade', qty: 2, type: 'Consumable' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'Wires', qty: 1 }, { name: 'Metal Parts', qty: 1 }],
+      recycled_from: [],
+    },
+    'magnetic-accelerator': {
+      used_in: [{ name: 'Equalizer', qty: 3, type: 'Weapon' }, { name: 'Jupiter', qty: 3, type: 'Weapon' }, { name: 'Aphelion', qty: 3, type: 'Weapon' }, { name: 'Trophy Display', qty: 10, type: 'Project' }],
+      dropped_by: [],
+      recycles_into: [{ name: 'Advanced Mechanical Components', qty: 1 }, { name: 'ARC Motion Core', qty: 1 }],
+      recycled_from: [{ name: 'Queen Reactor' }, { name: 'Matriarch Reactor' }],
+    },
+    'chemicals': {
+      used_in: [{ name: 'Crude Explosives', qty: 6, type: 'Material' }, { name: 'Medium Ammo', qty: 2, type: 'Consumable' }, { name: 'Heavy Ammo', qty: 2, type: 'Consumable' }],
+      dropped_by: [],
+      recycles_into: [],
+      recycled_from: [{ name: 'Tick Pod' }, { name: 'ARC Coolant' }],
+    },
+    'light-ammo': { used_in: [], dropped_by: [], recycles_into: [{ name: 'Metal Parts', qty: 2 }, { name: 'Chemicals', qty: 1 }], recycled_from: [] },
+    'medium-ammo': { used_in: [], dropped_by: [], recycles_into: [{ name: 'Metal Parts', qty: 3 }, { name: 'Chemicals', qty: 2 }], recycled_from: [] },
+    'heavy-ammo': { used_in: [], dropped_by: [], recycles_into: [{ name: 'Metal Parts', qty: 3 }, { name: 'Chemicals', qty: 2 }], recycled_from: [] },
+    'launcher-ammo': { used_in: [], dropped_by: [], recycles_into: [], recycled_from: [] },
+    'shotgun-ammo': { used_in: [], dropped_by: [], recycles_into: [], recycled_from: [] },
+  };
+
   const RARITY_ORDER = { Legendary: 0, Epic: 1, Rare: 2, Uncommon: 3, Common: 4 };
 
   // Build inverted index: item name → { icon, rarity, item_type, sources: [arcId...] }
@@ -733,17 +971,44 @@
       `<span class="rarity rarity-${item.rarity.toLowerCase()}">${item.rarity}</span>` +
       `<span>${item.item_type}</span>`;
 
-    // Reset tabs to loading state
-    ['used_in','dropped_by','recycles_into','recycled_from'].forEach(t => {
-      document.getElementById(`tab-${t}`).querySelector('.tab-count').textContent = '';
-      document.getElementById(`panel-${t}`).innerHTML =
-        '<div class="detail-loading"><div class="detail-spinner"></div>Loading…</div>';
-    });
     setActiveTab('used_in');
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
 
-    fetchItemDetail(item);
+    // Dropped By is always available from the hardcoded LOOT sources
+    const droppedBy = item.sources.map(id => ({ name: ARC_NAMES[id] ?? id }));
+
+    const slug = nameToSlug(item.name);
+    const rel = ITEM_RELATIONS[slug];
+
+    if (rel) {
+      // Instant render — no network call needed
+      ['used_in','dropped_by','recycles_into','recycled_from'].forEach(t => {
+        document.getElementById(`tab-${t}`).querySelector('.tab-count').textContent = '';
+      });
+      populateModal({
+        used_in:       rel.used_in       || [],
+        dropped_by:    droppedBy.length ? droppedBy : (rel.dropped_by || []),
+        recycles_into: rel.recycles_into  || [],
+        recycled_from: rel.recycled_from  || [],
+      });
+    } else {
+      // Not in hardcoded data — show loading and try API
+      ['used_in','dropped_by','recycles_into','recycled_from'].forEach(t => {
+        document.getElementById(`tab-${t}`).querySelector('.tab-count').textContent = '';
+        document.getElementById(`panel-${t}`).innerHTML =
+          '<div class="detail-loading"><div class="detail-spinner"></div>Loading…</div>';
+      });
+      // Pre-fill Dropped By from sources so it's instant
+      if (droppedBy.length) {
+        const tab = document.getElementById('tab-dropped_by');
+        const panel = document.getElementById('panel-dropped_by');
+        tab.querySelector('.tab-count').textContent = droppedBy.length;
+        panel.innerHTML = `<table class="detail-table"><thead><tr><th>Name</th><th>Type</th></tr></thead>
+          <tbody>${droppedBy.map(r => `<tr><td>${r.name}</td><td style="color:var(--muted);font-size:0.78rem">ARC Enemy</td></tr>`).join('')}</tbody></table>`;
+      }
+      fetchItemDetail(item);
+    }
   }
 
   function isUsableData(data) {

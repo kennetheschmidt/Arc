@@ -745,6 +745,29 @@
     if (detailCache[slug]) { populateModal(detailCache[slug]); return; }
 
     const debugLog = {};
+
+    // Strategy 1: scrape the metaforge item page and extract __NEXT_DATA__
+    try {
+      const pageUrl = `https://metaforge.app/arc-raiders/database/item/${slug}`;
+      const res = await fetch(PROXY + encodeURIComponent(pageUrl));
+      const html = await res.text();
+      const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+      if (match) {
+        const nextData = JSON.parse(match[1]);
+        debugLog['__NEXT_DATA__ keys'] = Object.keys(nextData?.props?.pageProps ?? {});
+        const pp = nextData?.props?.pageProps ?? {};
+        // Try common pageProps shapes
+        const data = pp.item ?? pp.data ?? pp.loot ?? pp;
+        console.log('[Arc Raiders] __NEXT_DATA__ pageProps:', pp);
+        if (data && (data.id || data.name)) {
+          detailCache[slug] = data;
+          populateModal(data, debugLog);
+          return;
+        }
+      }
+    } catch(e) { debugLog['__NEXT_DATA__'] = `error: ${e.message}`; }
+
+    // Strategy 2: try JSON API endpoints
     for (const endpointFn of ITEM_API_ENDPOINTS) {
       const url = endpointFn(slug);
       try {
@@ -760,7 +783,8 @@
         return;
       } catch (e) { debugLog[url] = `error: ${e.message}`; }
     }
-    // All failed — show raw debug so we can see what came back
+
+    // All failed
     const debugHtml = `<div class="detail-empty" style="text-align:left;font-size:0.7rem">
       <div style="color:var(--accent);font-weight:700;margin-bottom:8px">No data found. Raw responses:</div>
       <pre style="white-space:pre-wrap;word-break:break-all;color:var(--muted)">${JSON.stringify(debugLog,null,2)}</pre>
@@ -826,7 +850,7 @@
     const usedInPanel = document.getElementById('panel-used_in');
     usedInPanel.innerHTML += `<details open style="padding:12px 18px;border-top:1px solid var(--border)">
       <summary style="font-size:0.7rem;color:var(--muted);cursor:pointer">Raw API response (tap to collapse)</summary>
-      <pre style="font-size:0.65rem;color:var(--muted);white-space:pre-wrap;word-break:break-all;margin-top:8px;max-height:300px;overflow-y:auto">${JSON.stringify(data, null, 2)}</pre>
+      <pre style="font-size:0.65rem;color:var(--muted);white-space:pre-wrap;word-break:break-all;margin-top:8px">${JSON.stringify(data, null, 2)}</pre>
     </details>`;
   }
 

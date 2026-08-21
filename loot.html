@@ -382,6 +382,34 @@
   style="color:var(--accent);text-decoration:none">metaforge.app</a>
 </footer>
 
+<!-- Item Detail Modal -->
+<div class="item-modal-overlay" id="itemModalOverlay">
+  <div class="item-modal">
+    <div class="item-modal-head">
+      <div class="item-modal-top">
+        <img class="item-modal-icon" id="iModalIcon" src="" alt="" onerror="this.style.display='none'">
+        <div>
+          <div class="item-modal-title" id="iModalTitle"></div>
+          <div class="item-modal-sub" id="iModalSub"></div>
+        </div>
+      </div>
+      <div class="item-tabs">
+        <div class="item-tab active" data-tab="used_in" id="tab-used_in">Used In<span class="tab-count"></span></div>
+        <div class="item-tab" data-tab="dropped_by" id="tab-dropped_by">Dropped By<span class="tab-count"></span></div>
+        <div class="item-tab" data-tab="recycles_into" id="tab-recycles_into">Recycles Into<span class="tab-count"></span></div>
+        <div class="item-tab" data-tab="recycled_from" id="tab-recycled_from">Recycled From<span class="tab-count"></span></div>
+      </div>
+    </div>
+    <div class="item-modal-body">
+      <div class="tab-panel active" id="panel-used_in"></div>
+      <div class="tab-panel" id="panel-dropped_by"></div>
+      <div class="tab-panel" id="panel-recycles_into"></div>
+      <div class="tab-panel" id="panel-recycled_from"></div>
+    </div>
+    <button class="item-modal-close" onclick="closeItemModal()">Close</button>
+  </div>
+</div>
+
 <script>
   const CDN = 'https://cdn.metaforge.app/arc-raiders/icons/';
 
@@ -827,32 +855,5 @@
     t.addEventListener('click', () => setActiveTab(t.dataset.tab)));
 </script>
 
-<!-- Item Detail Modal -->
-<div class="item-modal-overlay" id="itemModalOverlay">
-  <div class="item-modal">
-    <div class="item-modal-head">
-      <div class="item-modal-top">
-        <img class="item-modal-icon" id="iModalIcon" src="" alt="" onerror="this.style.display='none'">
-        <div>
-          <div class="item-modal-title" id="iModalTitle"></div>
-          <div class="item-modal-sub" id="iModalSub"></div>
-        </div>
-      </div>
-      <div class="item-tabs">
-        <div class="item-tab active" data-tab="used_in" id="tab-used_in">Used In<span class="tab-count"></span></div>
-        <div class="item-tab" data-tab="dropped_by" id="tab-dropped_by">Dropped By<span class="tab-count"></span></div>
-        <div class="item-tab" data-tab="recycles_into" id="tab-recycles_into">Recycles Into<span class="tab-count"></span></div>
-        <div class="item-tab" data-tab="recycled_from" id="tab-recycled_from">Recycled From<span class="tab-count"></span></div>
-      </div>
-    </div>
-    <div class="item-modal-body">
-      <div class="tab-panel active" id="panel-used_in"></div>
-      <div class="tab-panel" id="panel-dropped_by"></div>
-      <div class="tab-panel" id="panel-recycles_into"></div>
-      <div class="tab-panel" id="panel-recycled_from"></div>
-    </div>
-    <button class="item-modal-close" onclick="closeItemModal()">Close</button>
-  </div>
-</div>
 </body>
 </html>

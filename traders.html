@@ -443,14 +443,62 @@
     });
   }
 
-  function openModal(trader) {
+  const WEEKLY_ENDPOINTS = [
+    'https://metaforge.app/api/arc-raiders/weekly-trader',
+    'https://metaforge.app/api/arc-raiders/weekly-traders',
+    'https://metaforge.app/api/arc-raiders/ermal',
+  ];
+
+  async function fetchWeeklyItems(traderName) {
+    for (const url of WEEKLY_ENDPOINTS) {
+      try {
+        const res  = await fetch('https://corsproxy.io/?url=' + encodeURIComponent(url));
+        if (!res.ok) continue;
+        const json = await res.json();
+        const raw  = json.data ?? json;
+        // Shape: array of items, or { items: [...] }, or { traderName: [...] }
+        let items = [];
+        if (Array.isArray(raw)) items = raw;
+        else if (Array.isArray(raw.items)) items = raw.items;
+        else if (raw[traderName]) items = raw[traderName];
+        else {
+          // object keyed by trader name (case-insensitive search)
+          const key = Object.keys(raw).find(k => k.toLowerCase() === traderName.toLowerCase());
+          if (key) items = raw[key];
+        }
+        if (items.length) return items;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  async function openModal(trader) {
     lockScroll();
     currentItems = trader.items;
     document.getElementById('modal-name').textContent = trader.name;
-    document.getElementById('modal-item-count').textContent = trader.items.length + ' item' + (trader.items.length !== 1 ? 's' : '');
     document.getElementById('modal-item-search').value = '';
-    renderItemRows(currentItems);
     document.getElementById('modal-backdrop').classList.add('open');
+
+    // If this is a weekly trader with no items yet, try to fetch them
+    if (trader.badge && !trader.items.length) {
+      document.getElementById('modal-item-count').textContent = 'Loading…';
+      renderItemRows([]);
+      const fetched = await fetchWeeklyItems(trader.name);
+      if (fetched && fetched.length) {
+        trader.items = fetched;  // cache on the object so we don't re-fetch
+        currentItems = fetched;
+        // refresh count on grid card
+        renderGrid(allTraders);
+      }
+      if (!fetched) {
+        document.getElementById('modal-item-count').textContent = 'No inventory data available';
+        return;
+      }
+    }
+
+    currentItems = trader.items;
+    document.getElementById('modal-item-count').textContent = trader.items.length + ' item' + (trader.items.length !== 1 ? 's' : '');
+    renderItemRows(currentItems);
   }
 
   function closeModal() {

@@ -346,7 +346,7 @@
 </div>
 
 <script>
-  const PROXY_URL = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/arcs';
+  const PROXY_URL = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/arcs?loot=true';
 
   // Static loot data keyed by arc ID
   const CDN = 'https://cdn.metaforge.app/arc-raiders/icons/';
@@ -528,8 +528,11 @@
       const res = await fetch(PROXY_URL);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      // Merge static loot into each arc
-      allArcs = (json.data || []).map(arc => ({ ...arc, loot: LOOT[arc.id] || [] }));
+      // Prefer loot from API response; fall back to hardcoded table
+      allArcs = (json.data || []).map(arc => {
+        const apiLoot = arc.loot && arc.loot.length ? arc.loot : null;
+        return { ...arc, loot: apiLoot || LOOT[arc.id] || [] };
+      });
       renderGrid(allArcs);
       document.getElementById('status').style.display = 'none';
       document.getElementById('arc-grid').style.display = 'grid';

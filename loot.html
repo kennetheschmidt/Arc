@@ -701,14 +701,16 @@
 
   // ── ITEM DETAIL MODAL ─────────────────────────────────────────────────────
 
-  const PROXY = 'https://corsproxy.io/?url=';
-  const ITEM_API_ENDPOINTS = [
+  const PROXIES = [
+    url => url,  // direct — works if metaforge allows all origins
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  ];
+  const ITEM_API_BASE_URLS = [
     id => `https://metaforge.app/api/arc-raiders/items/${id}`,
     id => `https://metaforge.app/api/arc-raiders/item/${id}`,
     id => `https://metaforge.app/api/arc-raiders/database/item/${id}`,
     id => `https://metaforge.app/api/arc-raiders/loot/${id}`,
-    id => `https://metaforge.app/api/arc-raiders/items?id=${id}`,
-    id => `https://metaforge.app/api/arc-raiders/items?slug=${id}`,
   ];
 
   function nameToSlug(name) {
@@ -745,64 +747,41 @@
            (data.id || data.name) && Object.keys(data).length > 1;
   }
 
+  async function tryFetch(url) {
+    for (const proxyFn of PROXIES) {
+      try {
+        const res = await fetch(proxyFn(url), {
+          headers: { Accept: 'application/json' },
+        });
+        const text = await res.text();
+        if (!text || !text.trim().startsWith('{')) continue;
+        const json = JSON.parse(text);
+        if (!res.ok) continue;
+        return json;
+      } catch (_) { /* try next proxy */ }
+    }
+    return null;
+  }
+
   async function fetchItemDetail(item) {
     const slug = nameToSlug(item.name);
     if (detailCache[slug]) { populateModal(detailCache[slug]); return; }
 
     const debugLog = {};
-
-    // Strategy 1: scrape the metaforge item page and extract __NEXT_DATA__
-    try {
-      const pageUrl = `https://metaforge.app/arc-raiders/database/item/${slug}`;
-      const res = await fetch(PROXY + encodeURIComponent(pageUrl));
-      const html = await res.text();
-      const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
-      if (match) {
-        const nextData = JSON.parse(match[1]);
-        const pp = nextData?.props?.pageProps ?? {};
-        debugLog['pageProps keys'] = Object.keys(pp);
-
-        // Try direct pageProps fields first
-        let data = pp.item ?? pp.data ?? pp.loot ?? null;
-
-        // Try React Query dehydrated state (common in Next.js + TanStack Query apps)
-        if (!isUsableData(data) && pp.dehydratedState?.queries?.length) {
-          for (const q of pp.dehydratedState.queries) {
-            const qd = q?.state?.data;
-            if (isUsableData(qd)) { data = qd; break; }
-          }
-        }
-
-        console.log('[Arc Raiders] __NEXT_DATA__ pageProps:', pp);
-        debugLog['resolved data'] = data;
-
-        if (isUsableData(data)) {
-          detailCache[slug] = data;
-          populateModal(data, debugLog);
-          return;
-        }
-      }
-    } catch(e) { debugLog['__NEXT_DATA__'] = `error: ${e.message}`; }
-
-    // Strategy 2: try JSON API endpoints — skip empty/trivial responses
-    for (const endpointFn of ITEM_API_ENDPOINTS) {
+    for (const endpointFn of ITEM_API_BASE_URLS) {
       const url = endpointFn(slug);
-      try {
-        const res  = await fetch(PROXY + encodeURIComponent(url));
-        const text = await res.text();
-        let json;
-        try { json = JSON.parse(text); } catch(_) { debugLog[url] = `non-JSON: ${text.slice(0,100)}`; continue; }
-        if (!res.ok) { debugLog[url] = `HTTP ${res.status}`; continue; }
-        const data = json.data ?? json;
-        if (!isUsableData(data)) { debugLog[url] = `empty/unusable: ${JSON.stringify(data).slice(0,80)}`; continue; }
-        debugLog[url] = '✓ used';
-        detailCache[slug] = data;
-        populateModal(data, debugLog);
-        return;
-      } catch (e) { debugLog[url] = `error: ${e.message}`; }
+      const json = await tryFetch(url);
+      if (!json) { debugLog[url] = 'no valid response'; continue; }
+      const data = json.data ?? json;
+      if (!isUsableData(data)) { debugLog[url] = `unusable: ${JSON.stringify(data).slice(0,60)}`; continue; }
+      console.log('[Arc Raiders] item data from', url, data);
+      debugLog[url] = '✓';
+      detailCache[slug] = data;
+      populateModal(data, debugLog);
+      return;
     }
 
-    // All failed — show tidy debug
+    // All failed
     const debugHtml = `<div class="detail-empty" style="text-align:left;font-size:0.7rem">
       <div style="color:var(--muted);margin-bottom:8px">No database entry found for this item.</div>
       <details><summary style="cursor:pointer;color:var(--muted)">Debug log</summary>

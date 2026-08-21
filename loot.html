@@ -738,11 +738,18 @@
   }
 
   function populateModal(data, debugLog) {
+    // Log full response to browser console for inspection
+    console.log('[Arc Raiders] item data:', data);
+
     const sections = {
-      used_in:       data.used_in        || data.usedIn        || data.crafting_uses || [],
-      dropped_by:    data.dropped_by     || data.droppedBy     || data.sources       || [],
-      recycles_into: data.recycles_into  || data.recyclesInto  || data.recycle_into  || [],
-      recycled_from: data.recycled_from  || data.recycledFrom  || data.recycle_from  || [],
+      used_in:       data.used_in        || data.usedIn           || data.crafting_uses   || data.craftingUses
+                  || data.recipes        || data.ingredientOf      || data.usedInRecipes   || [],
+      dropped_by:    data.dropped_by     || data.droppedBy         || data.sources         || data.drops
+                  || data.enemies        || data.arcEnemies        || data.loot_sources     || [],
+      recycles_into: data.recycles_into  || data.recyclesInto      || data.recycle_into    || data.recycleInto
+                  || data.recycling      || data.recycleOutput     || data.recycle          || [],
+      recycled_from: data.recycled_from  || data.recycledFrom      || data.recycle_from    || data.recycleFrom
+                  || data.recycleInput   || data.craftedFrom       || data.materials        || [],
     };
 
     Object.entries(sections).forEach(([key, rows]) => {
@@ -765,10 +772,10 @@
           </tr></thead>
           <tbody>
             ${rows.map(r => {
-              const name = r.name || r.item_name || r.arc_name || r.id || '—';
-              const type = r.type || r.item_type || r.category || '—';
-              const qty  = r.quantity || r.qty || r.count || '';
-              const icon = r.icon || r.image || '';
+              const name = r.name || r.item_name || r.arc_name || r.title || r.id || '—';
+              const type = r.type || r.item_type || r.category || r.rarity || '—';
+              const qty  = r.quantity || r.qty || r.count || r.amount || '';
+              const icon = r.icon || r.image || r.imageUrl || r.img || '';
               return `<tr>
                 ${isDroppedBy ? '' : `<td style="color:var(--muted);font-size:0.8rem;width:36px">${qty}</td>`}
                 <td>
@@ -782,11 +789,11 @@
         </table>`;
     });
 
-    // Debug: append raw keys to used_in panel so we can see the actual API shape
+    // Debug: raw API response — open by default so field names are visible
     const usedInPanel = document.getElementById('panel-used_in');
-    usedInPanel.innerHTML += `<details style="padding:12px 18px;border-top:1px solid var(--border)">
-      <summary style="font-size:0.7rem;color:var(--muted);cursor:pointer">Raw API keys</summary>
-      <pre style="font-size:0.68rem;color:var(--muted);white-space:pre-wrap;word-break:break-all;margin-top:8px">${JSON.stringify(Object.keys(data), null, 2)}\n\n${JSON.stringify(data, null, 2).slice(0, 1200)}</pre>
+    usedInPanel.innerHTML += `<details open style="padding:12px 18px;border-top:1px solid var(--border)">
+      <summary style="font-size:0.7rem;color:var(--muted);cursor:pointer">Raw API response (tap to collapse)</summary>
+      <pre style="font-size:0.65rem;color:var(--muted);white-space:pre-wrap;word-break:break-all;margin-top:8px;max-height:300px;overflow-y:auto">${JSON.stringify(data, null, 2)}</pre>
     </details>`;
   }
 

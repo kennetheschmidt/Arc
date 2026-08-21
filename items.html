@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arc Raiders – Items Database</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0f14;
+      --surface:  #141720;
+      --surface2: #1c2030;
+      --border:   #2a2f42;
+      --accent:   #e8a020;
+      --text:     #e2e8f0;
+      --muted:    #6b7280;
+    }
+
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .rainbow-bar { height: 4px; background: linear-gradient(90deg,#e63946,#e8762a,#f4c430,#4ade80,#38bdf8,#a78bfa); }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .wordmark { font-size: 1rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
+    .w-arc { color: #fff; }
+    .w-raiders { color: #e8423a; font-style: italic; }
+    .page-name { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+    nav { display: flex; gap: 6px; flex-wrap: wrap; }
+    .nav-link { padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 0.82rem; text-decoration: none; transition: all 0.15s; }
+    .nav-link:hover { border-color: var(--accent); color: var(--accent); }
+    .nav-link.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+
+    /* CONTROLS */
+    #controls {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    }
+    #search {
+      flex: 1; min-width: 200px;
+      padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 0.9rem; outline: none;
+    }
+    #search:focus { border-color: var(--accent); }
+    #search::placeholder { color: var(--muted); }
+
+    /* CATEGORY TABS */
+    .cat-tabs {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; overflow-x: auto; scrollbar-width: none;
+    }
+    .cat-tabs::-webkit-scrollbar { display: none; }
+    .cat-tab {
+      padding: 10px 16px; font-size: 0.78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+      cursor: pointer; white-space: nowrap;
+      border: none; background: transparent; font-family: inherit;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      touch-action: manipulation;
+    }
+    .cat-tab:hover { color: var(--text); }
+    .cat-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .cat-tab .cat-count { font-size: 0.65rem; background: var(--surface2); border-radius: 10px; padding: 1px 5px; margin-left: 4px; }
+
+    /* RARITY FILTER */
+    .filter-btn {
+      padding: 7px 13px; border-radius: 20px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 0.78rem;
+      cursor: pointer; white-space: nowrap; transition: all 0.15s; font-family: inherit;
+      touch-action: manipulation;
+    }
+    .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+
+    /* GRID */
+    main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+    #item-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .item-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; transition: border-color 0.15s, transform 0.12s;
+    }
+    .item-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+    .item-icon {
+      width: 44px; height: 44px; border-radius: 8px;
+      background: var(--surface); flex-shrink: 0; overflow: hidden;
+    }
+    .item-icon img { width: 100%; height: 100%; object-fit: contain; }
+
+    .item-info { flex: 1; min-width: 0; }
+    .item-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+    .item-type { font-size: 0.68rem; color: var(--muted); }
+
+    .rarity { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.66rem; font-weight: 700; }
+    .rarity-common    { background: #374151; color: #9ca3af; }
+    .rarity-uncommon  { background: #14532d; color: #4ade80; }
+    .rarity-rare      { background: #1e3a8a; color: #60a5fa; }
+    .rarity-epic      { background: #4a1d96; color: #c084fc; }
+    .rarity-legendary { background: #78350f; color: var(--accent); }
+
+    .empty { text-align: center; padding: 48px; color: var(--muted); font-size: 0.9rem; }
+
+    /* SPINNER */
+    #loading {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 60px; color: var(--muted); font-size: 0.9rem; gap: 16px;
+    }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* MODAL */
+    .item-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75); z-index: 200;
+      align-items: flex-end; justify-content: center;
+    }
+    .item-modal-overlay.open { display: flex; }
+    .item-modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px 16px 0 0; width: 100%; max-width: 620px;
+      max-height: 82vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .item-modal-head { padding: 18px 18px 0; flex-shrink: 0; }
+    .item-modal-top { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .item-modal-icon { width: 52px; height: 52px; border-radius: 8px; background: var(--surface2); object-fit: contain; flex-shrink: 0; }
+    .item-modal-title { font-size: 1.05rem; font-weight: 700; }
+    .item-modal-sub { font-size: 0.78rem; color: var(--muted); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .item-modal-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; margin-bottom: 12px; }
+
+    .item-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+    .item-tabs::-webkit-scrollbar { display: none; }
+    .item-tab {
+      padding: 10px 14px; font-size: 0.75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+      cursor: pointer; white-space: nowrap; border: none;
+      border-bottom: 2px solid transparent; background: transparent; font-family: inherit;
+      transition: color 0.15s, border-color 0.15s; touch-action: manipulation;
+    }
+    .item-tab:hover { color: var(--text); }
+    .item-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .item-tab .tab-count { display: inline-block; background: var(--surface2); border-radius: 10px; padding: 1px 6px; font-size: 0.65rem; margin-left: 4px; }
+
+    .item-modal-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .detail-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .detail-table th { text-align: left; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 10px 18px 6px; border-bottom: 1px solid var(--border); }
+    .detail-table td { padding: 9px 18px; border-bottom: 1px solid rgba(42,47,66,0.5); vertical-align: middle; }
+    .detail-table tr:last-child td { border-bottom: none; }
+    .detail-img { width: 26px; height: 26px; border-radius: 4px; background: var(--surface2); object-fit: contain; margin-right: 8px; vertical-align: middle; }
+    .detail-empty { padding: 32px 18px; color: var(--muted); font-size: 0.85rem; text-align: center; }
+
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    .stat-row { padding: 10px 18px; border-bottom: 1px solid rgba(42,47,66,0.5); display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; }
+    .stat-label { color: var(--muted); }
+    .stat-val { font-weight: 600; }
+
+    .item-modal-close {
+      display: block; width: calc(100% - 36px); margin: 12px 18px;
+      padding: 11px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0;
+      font-family: inherit;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div>
+      <div class="wordmark"><span class="w-arc">ARC</span> <span class="w-raiders">Raiders</span></div>
+      <div class="page-name">Items Database</div>
+    </div>
+  </div>
+  <nav>
+    <a href="index.html"   class="nav-link">Home</a>
+    <a href="events.html"  class="nav-link">Events</a>
+    <a href="arcs.html"    class="nav-link">ARC Units</a>
+    <a href="loot.html"    class="nav-link">Loot</a>
+    <a href="items.html"   class="nav-link active">Items</a>
+    <a href="traders.html" class="nav-link">Traders</a>
+    <a href="trials.html"  class="nav-link">Trials</a>
+  </nav>
+</header>
+<div class="rainbow-bar"></div>
+
+<div id="controls">
+  <input id="search" type="search" placeholder="Search items…" autocomplete="off" />
+  <button class="filter-btn active" data-rarity="all" type="button">All</button>
+  <button class="filter-btn" data-rarity="Legendary" type="button">Legendary</button>
+  <button class="filter-btn" data-rarity="Epic" type="button">Epic</button>
+  <button class="filter-btn" data-rarity="Rare" type="button">Rare</button>
+  <button class="filter-btn" data-rarity="Uncommon" type="button">Uncommon</button>
+  <button class="filter-btn" data-rarity="Common" type="button">Common</button>
+</div>
+
+<div class="cat-tabs" id="catTabs"></div>
+
+<!-- Item Detail Modal -->
+<div class="item-modal-overlay" id="itemModalOverlay">
+  <div class="item-modal">
+    <div class="item-modal-head">
+      <div class="item-modal-top">
+        <img class="item-modal-icon" id="iModalIcon" src="" alt="" onerror="this.style.display='none'">
+        <div>
+          <div class="item-modal-title" id="iModalTitle"></div>
+          <div class="item-modal-sub" id="iModalSub"></div>
+        </div>
+      </div>
+      <div id="iModalDesc" class="item-modal-desc"></div>
+      <div class="item-tabs" id="iModalTabs">
+        <button class="item-tab active" data-tab="stats"         type="button">Stats<span class="tab-count"></span></button>
+        <button class="item-tab"        data-tab="used_in"       type="button">Used In<span class="tab-count"></span></button>
+        <button class="item-tab"        data-tab="dropped_by"    type="button">Dropped By<span class="tab-count"></span></button>
+        <button class="item-tab"        data-tab="recycles_into" type="button">Recycles Into<span class="tab-count"></span></button>
+        <button class="item-tab"        data-tab="recycled_from" type="button">Recycled From<span class="tab-count"></span></button>
+      </div>
+    </div>
+    <div class="item-modal-body">
+      <div class="tab-panel active" id="panel-stats"></div>
+      <div class="tab-panel" id="panel-used_in"></div>
+      <div class="tab-panel" id="panel-dropped_by"></div>
+      <div class="tab-panel" id="panel-recycles_into"></div>
+      <div class="tab-panel" id="panel-recycled_from"></div>
+    </div>
+    <button class="item-modal-close" onclick="closeItemModal()" type="button">Close</button>
+  </div>
+</div>
+
+<main>
+  <div id="loading">
+    <div class="spinner"></div>
+    Loading items database…
+  </div>
+  <div id="item-grid" style="display:none"></div>
+</main>
+
+<footer style="text-align:center;padding:24px;margin-top:32px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--muted)">
+  Data provided by <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">metaforge.app</a>
+</footer>
+
+<script>
+  // ── FETCH ────────────────────────────────────────────────────────────────
+  const PROXIES = [
+    u => u,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+  ];
+  const API_ENDPOINTS = [
+    'https://metaforge.app/api/arc-raiders/items',
+    'https://metaforge.app/api/arc-raiders/database/items',
+    'https://metaforge.app/api/arc-raiders/loot',
+    'https://metaforge.app/api/arc-raiders/database',
+  ];
+
+  async function fetchAllItems() {
+    for (const url of API_ENDPOINTS) {
+      for (const proxyFn of PROXIES) {
+        try {
+          const res = await fetch(proxyFn(url), { headers: { Accept: 'application/json' } });
+          if (!res.ok) continue;
+          const text = await res.text();
+          const trimmed = text.trim();
+          if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) continue;
+          const json = JSON.parse(text);
+          const data = json.data ?? json.items ?? json;
+          if (Array.isArray(data) && data.length > 0) return data;
+          if (data && typeof data === 'object') {
+            const arr = Object.values(data).find(v => Array.isArray(v) && v.length > 0);
+            if (arr) return arr;
+          }
+        } catch (_) {}
+      }
+    }
+    return null;
+  }
+
+  // ── STATE ─────────────────────────────────────────────────────────────────
+  let allItems = [];
+  let activeCategory = 'All';
+  let activeRarity   = 'all';
+
+  const RARITY_ORDER = { Legendary: 0, Epic: 1, Rare: 2, Uncommon: 3, Common: 4 };
+
+  function nameToSlug(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  // ── CATEGORIES ────────────────────────────────────────────────────────────
+  const CAT_ALIASES = {
+    'Basic Material':    'Materials',
+    'Refined Material':  'Materials',
+    'Advanced Material': 'Materials',
+    'Topside Material':  'Materials',
+    'Recyclable':        'Recyclables',
+    'Ammunition':        'Ammo',
+    'Blueprint':         'Blueprints',
+    'Throwable':         'Consumables',
+    'Consumable':        'Consumables',
+  };
+
+  function getCategory(item) {
+    const t = item.item_type || item.type || item.category || '';
+    return CAT_ALIASES[t] || t || 'Other';
+  }
+
+  function buildCategories() {
+    const counts = {};
+    for (const item of allItems) {
+      const cat = getCategory(item);
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    const cats = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const tabs = document.getElementById('catTabs');
+    tabs.innerHTML = '';
+    const all = document.createElement('button');
+    all.type = 'button';
+    all.className = 'cat-tab active';
+    all.dataset.cat = 'All';
+    all.innerHTML = `All <span class="cat-count">${allItems.length}</span>`;
+    tabs.appendChild(all);
+    for (const [cat, count] of cats) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cat-tab';
+      btn.dataset.cat = cat;
+      btn.innerHTML = `${cat} <span class="cat-count">${count}</span>`;
+      tabs.appendChild(btn);
+    }
+  }
+
+  // ── RENDER ────────────────────────────────────────────────────────────────
+  function filtered() {
+    const q = document.getElementById('search').value.toLowerCase();
+    return allItems.filter(item => {
+      const cat = getCategory(item);
+      const matchCat  = activeCategory === 'All' || cat === activeCategory;
+      const matchRar  = activeRarity === 'all' || (item.rarity || '').toLowerCase() === activeRarity.toLowerCase();
+      const matchQ    = !q || (item.name || '').toLowerCase().includes(q) || (item.item_type || '').toLowerCase().includes(q);
+      return matchCat && matchRar && matchQ;
+    });
+  }
+
+  function render() {
+    const items = filtered();
+    const grid = document.getElementById('item-grid');
+    if (!items.length) {
+      grid.innerHTML = '<div class="empty" style="grid-column:1/-1">No items found.</div>';
+      return;
+    }
+    // Sort by rarity then name
+    items.sort((a, b) =>
+      (RARITY_ORDER[a.rarity] ?? 9) - (RARITY_ORDER[b.rarity] ?? 9) ||
+      (a.name || '').localeCompare(b.name || '')
+    );
+    grid.innerHTML = items.map(item => {
+      const rar = (item.rarity || 'Common').toLowerCase();
+      const icon = item.icon || item.image || `https://cdn.metaforge.app/arc-raiders/icons/${nameToSlug(item.name || '')}.webp`;
+      const type = item.item_type || item.type || '';
+      return `<div class="item-card" data-id="${(item.id || nameToSlug(item.name || '')).replace(/"/g,'&quot;')}">
+        <div class="item-icon"><img src="${icon}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'"></div>
+        <div class="item-info">
+          <div class="item-name">${item.name || item.id || '—'}</div>
+          <div class="item-meta">
+            <span class="rarity rarity-${rar}">${item.rarity || ''}</span>
+            <span class="item-type">${type}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── INIT ──────────────────────────────────────────────────────────────────
+  async function init() {
+    const data = await fetchAllItems();
+    document.getElementById('loading').style.display = 'none';
+    const grid = document.getElementById('item-grid');
+    grid.style.display = 'grid';
+
+    if (!data) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <div style="margin-bottom:12px">Could not load items database.</div>
+        <a href="https://metaforge.app/arc-raiders/database/items" target="_blank" rel="noopener"
+           style="display:inline-block;padding:10px 20px;background:var(--accent);color:#000;font-weight:700;font-size:0.82rem;border-radius:8px;text-decoration:none">
+          Browse on Metaforge →
+        </a>
+      </div>`;
+      return;
+    }
+
+    allItems = data;
+    buildCategories();
+    render();
+  }
+
+  init();
+
+  // ── CONTROLS ──────────────────────────────────────────────────────────────
+  document.getElementById('search').addEventListener('input', render);
+
+  document.getElementById('controls').addEventListener('click', e => {
+    const btn = e.target.closest('[data-rarity]');
+    if (!btn) return;
+    activeRarity = btn.dataset.rarity;
+    document.querySelectorAll('[data-rarity]').forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+
+  document.getElementById('catTabs').addEventListener('click', e => {
+    const tab = e.target.closest('[data-cat]');
+    if (!tab) return;
+    activeCategory = tab.dataset.cat;
+    document.querySelectorAll('[data-cat]').forEach(t => t.classList.toggle('active', t === tab));
+    render();
+  });
+
+  // ── ITEM CLICK ────────────────────────────────────────────────────────────
+  document.getElementById('item-grid').addEventListener('click', e => {
+    const card = e.target.closest('.item-card');
+    if (!card) return;
+    const id = card.dataset.id;
+    const item = allItems.find(i => (i.id || nameToSlug(i.name || '')) === id);
+    if (item) openItemModal(item);
+  });
+
+  // ── MODAL ─────────────────────────────────────────────────────────────────
+  let activeTab = 'stats';
+
+  function openItemModal(item) {
+    const icon = item.icon || item.image || `https://cdn.metaforge.app/arc-raiders/icons/${nameToSlug(item.name || '')}.webp`;
+    document.getElementById('iModalIcon').src = icon;
+    document.getElementById('iModalIcon').alt = item.name || '';
+    document.getElementById('iModalTitle').textContent = item.name || item.id || '—';
+    const rar = (item.rarity || 'Common').toLowerCase();
+    document.getElementById('iModalSub').innerHTML =
+      `<span class="rarity rarity-${rar}">${item.rarity || ''}</span>` +
+      `<span>${item.item_type || item.type || ''}</span>` +
+      (item.value ? `<span>⬡ ${item.value.toLocaleString()}</span>` : '');
+    document.getElementById('iModalDesc').textContent = item.description || '';
+
+    // Stats tab
+    const stats = item.stat_block || {};
+    const statFields = [
+      { label: 'Weight',   val: stats.weight },
+      { label: 'Damage',   val: stats.damage },
+      { label: 'Health',   val: stats.health },
+      { label: 'Shield',   val: stats.shield },
+      { label: 'Range',    val: stats.range  },
+      { label: 'Radius',   val: stats.radius },
+      { label: 'Workbench',val: item.workbench },
+      { label: 'Value',    val: item.value   },
+    ].filter(s => s.val !== undefined && s.val !== null && s.val !== 0 && s.val !== '');
+
+    document.getElementById('panel-stats').innerHTML = statFields.length
+      ? `<div class="stat-grid">${statFields.map(s => `<div class="stat-row"><span class="stat-label">${s.label}</span><span class="stat-val">${s.val}</span></div>`).join('')}</div>`
+      : `<div class="detail-empty">No stats available.</div>`;
+
+    // Relationship tabs from item data
+    const tabs = {
+      used_in:       item.used_in        || item.usedIn        || item.crafting_uses  || [],
+      dropped_by:    item.dropped_by     || item.droppedBy     || item.sources        || [],
+      recycles_into: item.recycles_into  || item.recyclesInto  || item.recycle_into   || [],
+      recycled_from: item.recycled_from  || item.recycledFrom  || item.recycle_from   || [],
+    };
+
+    ['used_in','dropped_by','recycles_into','recycled_from'].forEach(key => {
+      const rows = tabs[key];
+      const tab   = document.querySelector(`[data-tab="${key}"]`);
+      const panel = document.getElementById(`panel-${key}`);
+      tab.querySelector('.tab-count').textContent = rows.length || '';
+      if (!rows.length) { panel.innerHTML = '<div class="detail-empty">None listed.</div>'; return; }
+      const isDroppedBy = key === 'dropped_by';
+      panel.innerHTML = `<table class="detail-table"><thead><tr>
+        ${isDroppedBy ? '' : '<th>Qty</th>'}<th>Name</th><th>Type</th>
+      </tr></thead><tbody>
+        ${rows.map(r => {
+          const name = r.name || r.item_name || r.arc_name || r.id || '—';
+          const type = r.type || r.item_type || r.category || '—';
+          const qty  = r.quantity || r.qty || r.count || r.amount || '';
+          const icon2 = r.icon || r.image || '';
+          return `<tr>
+            ${isDroppedBy ? '' : `<td style="color:var(--muted);font-size:0.8rem;width:36px">${qty}</td>`}
+            <td>${icon2 ? `<img class="detail-img" src="${icon2}" onerror="this.style.display='none'">` : ''}${name}</td>
+            <td style="color:var(--muted);font-size:0.78rem">${type}</td>
+          </tr>`;
+        }).join('')}
+      </tbody></table>`;
+    });
+
+    setModalTab('stats');
+    document.getElementById('itemModalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function setModalTab(key) {
+    activeTab = key;
+    document.querySelectorAll('#iModalTabs .item-tab').forEach(t =>
+      t.classList.toggle('active', t.dataset.tab === key));
+    document.querySelectorAll('.tab-panel').forEach(p =>
+      p.classList.toggle('active', p.id === `panel-${key}`));
+  }
+
+  function closeItemModal() {
+    document.getElementById('itemModalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('iModalTabs').addEventListener('click', e => {
+    const tab = e.target.closest('.item-tab');
+    if (tab) setModalTab(tab.dataset.tab);
+  });
+
+  document.getElementById('itemModalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('itemModalOverlay')) closeItemModal();
+  });
+</script>
+</body>
+</html>

@@ -435,6 +435,7 @@
       card.innerHTML += `
         <div class="trader-card-body">
           <div class="trader-name">${trader.name}</div>
+          ${trader.badge ? `<div style="font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent);margin-bottom:2px">${trader.badge}</div>` : ''}
           <div class="trader-count"><span>${trader.items.length}</span> item${trader.items.length !== 1 ? 's' : ''}</div>
         </div>`;
       card.addEventListener('click', () => openModal(trader));
@@ -475,6 +476,15 @@
         allTraders = Array.isArray(raw) ? raw : [];
       }
       if (!allTraders.length) throw new Error('No trader data returned');
+      // Inject weekly-rotation traders not returned by the main endpoint
+      const WEEKLY = [
+        { name: 'Ermal', badge: 'Weekly Rotation', items: [] },
+      ];
+      WEEKLY.forEach(w => {
+        if (!allTraders.some(t => t.name.toLowerCase() === w.name.toLowerCase())) {
+          allTraders.push(w);
+        }
+      });
       renderGrid(allTraders);
       document.getElementById('status').style.display = 'none';
       document.getElementById('trader-grid').style.display = 'grid';

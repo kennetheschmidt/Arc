@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weekly Trials – Arc Raiders</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0f14;
+      --surface:  #141720;
+      --surface2: #1c2030;
+      --border:   #2a2f42;
+      --accent:   #e8a020;
+      --red:      #e8423a;
+      --green:    #4ade80;
+      --purple:   #a78bfa;
+      --text:     #e2e8f0;
+      --muted:    #6b7280;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    nav::-webkit-scrollbar { display: none; }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 14px 12px;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    nav a:hover { color: var(--text); }
+    nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── HEADER ── */
+    .page-header {
+      padding: 28px 24px 0;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .page-header h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .page-header p { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── COUNTDOWN BANNER ── */
+    .reset-banner {
+      max-width: 900px;
+      margin: 16px auto 0;
+      width: 100%;
+      padding: 0 24px;
+    }
+    .reset-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .reset-pill .timer { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    /* ── CONTENT ── */
+    .content {
+      flex: 1;
+      padding: 20px 24px 52px;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── STATUS ── */
+    .status {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── TRIAL CARDS ── */
+    .trials-list { display: flex; flex-direction: column; gap: 16px; }
+
+    .trial-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .trial-card-header {
+      padding: 16px 18px 12px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .trial-name {
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .trial-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+    .trial-badge {
+      flex-shrink: 0;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .trial-badge.weekly { color: var(--accent); border-color: rgba(232,160,32,0.3); }
+    .trial-badge.daily  { color: var(--green);  border-color: rgba(74,222,128,0.3); }
+
+    .trial-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    @media (max-width: 560px) {
+      .trial-body { grid-template-columns: 1fr; }
+    }
+
+    .trial-section {
+      padding: 14px 18px;
+    }
+    .trial-section + .trial-section {
+      border-left: 1px solid var(--border);
+    }
+    @media (max-width: 560px) {
+      .trial-section + .trial-section {
+        border-left: none;
+        border-top: 1px solid var(--border);
+      }
+    }
+
+    .section-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .objective-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .objective-item:last-child { margin-bottom: 0; }
+    .obj-bullet {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    .reward-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+    }
+    .reward-item:last-child { margin-bottom: 0; }
+    .reward-icon {
+      width: 28px; height: 28px;
+      border-radius: 4px;
+      background: var(--surface);
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .reward-rarity {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .reward-rarity.common   { background: rgba(156,163,175,0.12); color: #9ca3af; }
+    .reward-rarity.uncommon { background: rgba(74,222,128,0.12);  color: var(--green); }
+    .reward-rarity.rare     { background: rgba(167,139,250,0.15); color: var(--purple); }
+    .reward-rarity.epic     { background: rgba(232,160,32,0.15);  color: var(--accent); }
+    .reward-rarity.legendary { background: rgba(232,66,58,0.15);  color: var(--red); }
+
+    /* ── PROGRESS INDICATOR ── */
+    .trial-progress {
+      padding: 10px 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .progress-bar-bg {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+    .progress-label { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+
+    /* ── DEBUG ── */
+    .debug-panel {
+      margin-top: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .debug-toggle {
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 12px 16px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+    }
+    .debug-toggle:hover { color: var(--text); }
+    .debug-body { display: none; padding: 16px; border-top: 1px solid var(--border); }
+    .debug-body.open { display: block; }
+    .debug-body pre { font-size: 0.72rem; color: var(--muted); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">Home</a>
+  <a href="events.html">Events</a>
+  <a href="arcs.html">ARC Units</a>
+  <a href="loot.html">Loot</a>
+  <a href="traders.html">Traders</a>
+  <a href="trials.html" class="active">Trials</a>
+</nav>
+
+<div class="page-header">
+  <h1>Weekly Trials</h1>
+  <p>Active objectives and rewards for this week's trials</p>
+</div>
+
+<div class="reset-banner">
+  <div class="reset-pill">
+    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    Resets in <span class="timer" id="resetTimer">–</span>
+  </div>
+</div>
+
+<div class="content">
+  <div class="status" id="status">
+    <div class="spinner"></div>
+    Loading trials…
+  </div>
+  <div class="trials-list" id="trialsList" style="display:none"></div>
+  <div class="debug-panel" id="debugPanel" style="display:none">
+    <button class="debug-toggle" onclick="toggleDebug()">
+      <span>Raw API Response</span><span id="debugArrow">▶</span>
+    </button>
+    <div class="debug-body" id="debugBody">
+      <pre id="debugPre"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+const PROXY = 'https://corsproxy.io/?url=';
+
+// Try multiple likely endpoints in order
+const ENDPOINTS = [
+  'https://metaforge.app/api/arc-raiders/weekly-trials',
+  'https://metaforge.app/api/arc-raiders/trials',
+  'https://metaforge.app/api/arc-raiders/quests',
+];
+
+const RARITY_ORDER = ['legendary','epic','rare','uncommon','common'];
+
+// ── RESET TIMER ──────────────────────────────────────────────────────────────
+// Weekly reset: Thursday 17:00 UTC (Arc Raiders weekly cadence)
+function getNextReset() {
+  const now = new Date();
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 17, 0, 0));
+  // Find next Thursday (day 4)
+  const dow = d.getUTCDay();
+  const daysUntil = (4 - dow + 7) % 7 || 7;
+  d.setUTCDate(d.getUTCDate() + daysUntil);
+  return d;
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return '0s';
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function startTimer(resetDate) {
+  function tick() {
+    const ms = resetDate - Date.now();
+    document.getElementById('resetTimer').textContent = formatCountdown(ms);
+  }
+  tick();
+  setInterval(tick, 10000);
+}
+
+// ── FETCH ────────────────────────────────────────────────────────────────────
+async function loadData() {
+  let lastError = '';
+  const debugAll = {};
+
+  for (const endpoint of ENDPOINTS) {
+    try {
+      const res  = await fetch(PROXY + encodeURIComponent(endpoint));
+      const json = await res.json();
+      debugAll[endpoint] = json;
+
+      const raw = json.data ?? json;
+      const items = Array.isArray(raw) ? raw : (Array.isArray(raw.trials) ? raw.trials : null);
+
+      if (items && items.length) {
+        document.getElementById('debugPre').textContent = JSON.stringify(debugAll, null, 2);
+        document.getElementById('debugPanel').style.display = '';
+        renderTrials(items);
+        return;
+      }
+    } catch (e) {
+      lastError = e.message;
+      debugAll[endpoint] = { error: lastError };
+    }
+  }
+
+  document.getElementById('debugPre').textContent = JSON.stringify(debugAll, null, 2);
+  document.getElementById('debugPanel').style.display = '';
+  setStatus('Could not load trials data — see Raw API Response below.');
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderTrials(trials) {
+  const list = document.getElementById('trialsList');
+  document.getElementById('status').style.display = 'none';
+  list.style.display = '';
+  list.innerHTML = '';
+
+  trials.forEach(trial => {
+    const name       = trial.name || trial.title || trial.id || 'Unknown Trial';
+    const desc       = trial.description || trial.desc || '';
+    const type       = (trial.type || trial.category || 'weekly').toLowerCase();
+    const objectives = normaliseObjectives(trial.objectives || trial.tasks || trial.requirements || []);
+    const rewards    = normaliseRewards(trial.rewards || trial.reward_items || trial.loot || []);
+    const progress   = trial.progress ?? trial.completion ?? null;
+    const resetAt    = trial.reset_at || trial.ends_at || trial.expires_at || null;
+
+    const card = document.createElement('div');
+    card.className = 'trial-card';
+
+    card.innerHTML = `
+      <div class="trial-card-header">
+        <div>
+          <div class="trial-name">${esc(name)}</div>
+          ${desc ? `<div class="trial-desc">${esc(desc)}</div>` : ''}
+        </div>
+        <div class="trial-badge ${type}">${esc(type)}</div>
+      </div>
+      <div class="trial-body">
+        <div class="trial-section">
+          <div class="section-label">Objectives</div>
+          ${objectives.length
+            ? objectives.map(o => `
+                <div class="objective-item">
+                  <div class="obj-bullet"></div>
+                  <span>${esc(o)}</span>
+                </div>`).join('')
+            : `<div style="font-size:0.8rem;color:var(--muted)">No objectives listed.</div>`
+          }
+        </div>
+        <div class="trial-section">
+          <div class="section-label">Rewards</div>
+          ${rewards.length
+            ? rewards.map(r => `
+                <div class="reward-item">
+                  ${r.icon ? `<img class="reward-icon" src="${esc(r.icon)}" alt="" onerror="this.style.display='none'">` : ''}
+                  <span>${esc(r.name)}</span>
+                  ${r.rarity ? `<span class="reward-rarity ${esc(r.rarity)}">${esc(r.rarity)}</span>` : ''}
+                </div>`).join('')
+            : `<div style="font-size:0.8rem;color:var(--muted)">No rewards listed.</div>`
+          }
+        </div>
+      </div>
+      ${progress !== null ? `
+        <div class="trial-progress">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:${Math.min(100, progress)}%"></div>
+          </div>
+          <div class="progress-label">${Math.round(progress)}% complete</div>
+        </div>` : ''}
+    `;
+    list.appendChild(card);
+  });
+}
+
+function normaliseObjectives(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(o => {
+    if (typeof o === 'string') return o;
+    return o.description || o.text || o.name || o.title || o.objective || JSON.stringify(o);
+  });
+}
+
+function normaliseRewards(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(r => {
+    if (typeof r === 'string') return { name: r };
+    return {
+      name:   r.name || r.item_name || r.id || 'Unknown',
+      rarity: (r.rarity || r.tier || '').toLowerCase(),
+      icon:   r.icon || r.image || r.img || null,
+    };
+  });
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function setStatus(msg) {
+  const el = document.getElementById('status');
+  el.innerHTML = `<div style="color:var(--red)">${msg}</div>`;
+  el.style.display = '';
+}
+
+function toggleDebug() {
+  const body  = document.getElementById('debugBody');
+  const arrow = document.getElementById('debugArrow');
+  body.classList.toggle('open');
+  arrow.textContent = body.classList.contains('open') ? '▼' : '▶';
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+startTimer(getNextReset());
+loadData();
+</script>
+</body>
+</html>

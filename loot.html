@@ -251,9 +251,14 @@
       color: var(--muted);
       cursor: pointer;
       white-space: nowrap;
+      border: none;
       border-bottom: 2px solid transparent;
+      background: transparent;
+      font-family: inherit;
       transition: color 0.15s, border-color 0.15s;
       user-select: none;
+      -webkit-appearance: none;
+      touch-action: manipulation;
     }
     .item-tab:hover { color: var(--text); }
     .item-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -393,11 +398,11 @@
           <div class="item-modal-sub" id="iModalSub"></div>
         </div>
       </div>
-      <div class="item-tabs">
-        <div class="item-tab active" data-tab="used_in" id="tab-used_in">Used In<span class="tab-count"></span></div>
-        <div class="item-tab" data-tab="dropped_by" id="tab-dropped_by">Dropped By<span class="tab-count"></span></div>
-        <div class="item-tab" data-tab="recycles_into" id="tab-recycles_into">Recycles Into<span class="tab-count"></span></div>
-        <div class="item-tab" data-tab="recycled_from" id="tab-recycled_from">Recycled From<span class="tab-count"></span></div>
+      <div class="item-tabs" id="itemTabs">
+        <button class="item-tab active" data-tab="used_in" id="tab-used_in" type="button">Used In<span class="tab-count"></span></button>
+        <button class="item-tab" data-tab="dropped_by" id="tab-dropped_by" type="button">Dropped By<span class="tab-count"></span></button>
+        <button class="item-tab" data-tab="recycles_into" id="tab-recycles_into" type="button">Recycles Into<span class="tab-count"></span></button>
+        <button class="item-tab" data-tab="recycled_from" id="tab-recycled_from" type="button">Recycled From<span class="tab-count"></span></button>
       </div>
     </div>
     <div class="item-modal-body">
@@ -851,8 +856,11 @@
   document.getElementById('itemModalOverlay').addEventListener('click', e => {
     if (e.target === document.getElementById('itemModalOverlay')) closeItemModal();
   });
-  document.querySelectorAll('.item-tab').forEach(t =>
-    t.addEventListener('click', () => setActiveTab(t.dataset.tab)));
+
+  document.getElementById('itemTabs').addEventListener('click', e => {
+    const tab = e.target.closest('.item-tab');
+    if (tab) setActiveTab(tab.dataset.tab);
+  });
 </script>
 
 </body>

@@ -702,15 +702,19 @@
   // ── ITEM DETAIL MODAL ─────────────────────────────────────────────────────
 
   const PROXIES = [
-    url => url,  // direct — works if metaforge allows all origins
+    url => url,
     url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
     url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
   ];
   const ITEM_API_BASE_URLS = [
+    // CDN endpoints (usually open CORS) — try first
+    id => `https://static.metaforge.app/arc-raiders/data/items/${id}.json`,
+    id => `https://cdn.metaforge.app/arc-raiders/data/${id}.json`,
+    // API endpoints
     id => `https://metaforge.app/api/arc-raiders/items/${id}`,
     id => `https://metaforge.app/api/arc-raiders/item/${id}`,
     id => `https://metaforge.app/api/arc-raiders/database/item/${id}`,
-    id => `https://metaforge.app/api/arc-raiders/loot/${id}`,
   ];
 
   function nameToSlug(name) {
@@ -781,11 +785,16 @@
       return;
     }
 
-    // All failed
-    const debugHtml = `<div class="detail-empty" style="text-align:left;font-size:0.7rem">
-      <div style="color:var(--muted);margin-bottom:8px">No database entry found for this item.</div>
-      <details><summary style="cursor:pointer;color:var(--muted)">Debug log</summary>
-      <pre style="white-space:pre-wrap;word-break:break-all;color:var(--muted);margin-top:6px">${JSON.stringify(debugLog,null,2)}</pre>
+    // All failed — show Metaforge link as fallback
+    const metaUrl = `https://metaforge.app/arc-raiders/database/item/${slug}`;
+    const debugHtml = `<div class="detail-empty">
+      <div style="color:var(--muted);margin-bottom:12px;font-size:0.85rem">Live data unavailable.</div>
+      <a href="${metaUrl}" target="_blank" rel="noopener"
+         style="display:inline-block;padding:10px 20px;background:var(--accent);color:#000;font-weight:700;font-size:0.82rem;border-radius:8px;text-decoration:none">
+        View on Metaforge →
+      </a>
+      <details style="margin-top:16px;text-align:left"><summary style="cursor:pointer;color:var(--muted);font-size:0.7rem">Debug log</summary>
+      <pre style="white-space:pre-wrap;word-break:break-all;color:var(--muted);margin-top:6px;font-size:0.65rem">${JSON.stringify(debugLog,null,2)}</pre>
       </details>
     </div>`;
     ['used_in','dropped_by','recycles_into','recycled_from'].forEach(t => {
@@ -845,12 +854,6 @@
         </table>`;
     });
 
-    // Debug: raw API response — open by default so field names are visible
-    const usedInPanel = document.getElementById('panel-used_in');
-    usedInPanel.innerHTML += `<details open style="padding:12px 18px;border-top:1px solid var(--border)">
-      <summary style="font-size:0.7rem;color:var(--muted);cursor:pointer">Raw API response (tap to collapse)</summary>
-      <pre style="font-size:0.65rem;color:var(--muted);white-space:pre-wrap;word-break:break-all;margin-top:8px">${JSON.stringify(data, null, 2)}</pre>
-    </details>`;
   }
 
   function setActiveTab(tabKey) {

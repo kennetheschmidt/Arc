@@ -261,6 +261,30 @@
     }
     .progress-label { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
 
+    /* ── PAST TRIALS ACCORDION ── */
+    .past-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 14px 18px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      user-select: none;
+      margin-top: 8px;
+    }
+    .past-header:hover { color: var(--text); border-color: var(--accent); }
+    .past-header .chevron { transition: transform 0.2s; font-style: normal; }
+    .past-header.open .chevron { transform: rotate(180deg); }
+    .past-body { display: none; flex-direction: column; gap: 12px; margin-top: 10px; }
+    .past-body.open { display: flex; }
+
     /* ── DEBUG ── */
     .debug-panel {
       margin-top: 32px;
@@ -407,67 +431,105 @@ async function loadData() {
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
+function isActive(trial) {
+  // Explicit active flag
+  if (trial.active !== undefined) return !!trial.active;
+  if (trial.is_active !== undefined) return !!trial.is_active;
+  // Date-based: has an end date in the future
+  const end = trial.reset_at || trial.ends_at || trial.expires_at || trial.end_date || null;
+  if (end) return new Date(end) > new Date();
+  // No date info — treat the first item as active (handled by caller)
+  return null;
+}
+
+function buildCard(trial) {
+  const name       = trial.name || trial.title || trial.id || 'Unknown Trial';
+  const desc       = trial.description || trial.desc || '';
+  const type       = (trial.type || trial.category || 'weekly').toLowerCase();
+  const objectives = normaliseObjectives(trial.objectives || trial.tasks || trial.requirements || []);
+  const rewards    = normaliseRewards(trial.rewards || trial.reward_items || trial.loot || []);
+  const progress   = trial.progress ?? trial.completion ?? null;
+
+  const card = document.createElement('div');
+  card.className = 'trial-card';
+  card.innerHTML = `
+    <div class="trial-card-header">
+      <div>
+        <div class="trial-name">${esc(name)}</div>
+        ${desc ? `<div class="trial-desc">${esc(desc)}</div>` : ''}
+      </div>
+      <div class="trial-badge ${type}">${esc(type)}</div>
+    </div>
+    <div class="trial-body">
+      <div class="trial-section">
+        <div class="section-label">Objectives</div>
+        ${objectives.length
+          ? objectives.map(o => `<div class="objective-item"><div class="obj-bullet"></div><span>${esc(o)}</span></div>`).join('')
+          : `<div style="font-size:0.8rem;color:var(--muted)">No objectives listed.</div>`
+        }
+      </div>
+      <div class="trial-section">
+        <div class="section-label">Rewards</div>
+        ${rewards.length
+          ? rewards.map(r => `
+              <div class="reward-item">
+                ${r.icon ? `<img class="reward-icon" src="${esc(r.icon)}" alt="" onerror="this.style.display='none'">` : ''}
+                <span>${esc(r.name)}</span>
+                ${r.rarity ? `<span class="reward-rarity ${esc(r.rarity)}">${esc(r.rarity)}</span>` : ''}
+              </div>`).join('')
+          : `<div style="font-size:0.8rem;color:var(--muted)">No rewards listed.</div>`
+        }
+      </div>
+    </div>
+    ${progress !== null ? `
+      <div class="trial-progress">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${Math.min(100, progress)}%"></div></div>
+        <div class="progress-label">${Math.round(progress)}% complete</div>
+      </div>` : ''}
+  `;
+  return card;
+}
+
 function renderTrials(trials) {
   const list = document.getElementById('trialsList');
   document.getElementById('status').style.display = 'none';
   list.style.display = '';
   list.innerHTML = '';
 
-  trials.forEach(trial => {
-    const name       = trial.name || trial.title || trial.id || 'Unknown Trial';
-    const desc       = trial.description || trial.desc || '';
-    const type       = (trial.type || trial.category || 'weekly').toLowerCase();
-    const objectives = normaliseObjectives(trial.objectives || trial.tasks || trial.requirements || []);
-    const rewards    = normaliseRewards(trial.rewards || trial.reward_items || trial.loot || []);
-    const progress   = trial.progress ?? trial.completion ?? null;
-    const resetAt    = trial.reset_at || trial.ends_at || trial.expires_at || null;
+  // Partition into active vs past
+  let active = [], past = [];
+  const flags = trials.map(t => isActive(t));
+  const anyExplicit = flags.some(f => f !== null);
 
-    const card = document.createElement('div');
-    card.className = 'trial-card';
+  if (anyExplicit) {
+    trials.forEach((t, i) => (flags[i] !== false ? active : past).push(t));
+  } else {
+    // No date/flag info — first item is current, rest are past
+    active = trials.slice(0, 1);
+    past   = trials.slice(1);
+  }
 
-    card.innerHTML = `
-      <div class="trial-card-header">
-        <div>
-          <div class="trial-name">${esc(name)}</div>
-          ${desc ? `<div class="trial-desc">${esc(desc)}</div>` : ''}
-        </div>
-        <div class="trial-badge ${type}">${esc(type)}</div>
-      </div>
-      <div class="trial-body">
-        <div class="trial-section">
-          <div class="section-label">Objectives</div>
-          ${objectives.length
-            ? objectives.map(o => `
-                <div class="objective-item">
-                  <div class="obj-bullet"></div>
-                  <span>${esc(o)}</span>
-                </div>`).join('')
-            : `<div style="font-size:0.8rem;color:var(--muted)">No objectives listed.</div>`
-          }
-        </div>
-        <div class="trial-section">
-          <div class="section-label">Rewards</div>
-          ${rewards.length
-            ? rewards.map(r => `
-                <div class="reward-item">
-                  ${r.icon ? `<img class="reward-icon" src="${esc(r.icon)}" alt="" onerror="this.style.display='none'">` : ''}
-                  <span>${esc(r.name)}</span>
-                  ${r.rarity ? `<span class="reward-rarity ${esc(r.rarity)}">${esc(r.rarity)}</span>` : ''}
-                </div>`).join('')
-            : `<div style="font-size:0.8rem;color:var(--muted)">No rewards listed.</div>`
-          }
-        </div>
-      </div>
-      ${progress !== null ? `
-        <div class="trial-progress">
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" style="width:${Math.min(100, progress)}%"></div>
-          </div>
-          <div class="progress-label">${Math.round(progress)}% complete</div>
-        </div>` : ''}
-    `;
-    list.appendChild(card);
-  });
+  // Render active trials
+  active.forEach(t => list.appendChild(buildCard(t)));
+
+  // Render collapsible past section
+  if (past.length) {
+    const header = document.createElement('div');
+    header.className = 'past-header';
+    header.innerHTML = `<span>Previous Trials (${past.length})</span><i class="chevron">▾</i>`;
+
+    const body = document.createElement('div');
+    body.className = 'past-body';
+    past.forEach(t => body.appendChild(buildCard(t)));
+
+    header.addEventListener('click', () => {
+      header.classList.toggle('open');
+      body.classList.toggle('open');
+    });
+
+    list.appendChild(header);
+    list.appendChild(body);
+  }
 }
 
 function normaliseObjectives(raw) {

@@ -568,18 +568,16 @@
             <div class="arc-desc">${(arc.description && arc.description.toLowerCase() !== 'placeholder') ? arc.description : 'No description available.'}</div>
           </div>
         </div>`;
-      if (arc.loot && arc.loot.length) {
-        const lootLink = document.createElement('a');
-        lootLink.href = 'loot.html?arc=' + arc.id;
-        lootLink.textContent = 'View Loot';
-        lootLink.onclick = e => e.stopPropagation();
-        Object.assign(lootLink.style, {
-          display: 'inline-block', marginTop: '8px', fontSize: '0.72rem',
-          fontWeight: '600', color: 'var(--accent)', textDecoration: 'none',
-          border: '1px solid var(--accent)', borderRadius: '4px', padding: '3px 10px'
-        });
-        card.querySelector('.arc-info').appendChild(lootLink);
-      }
+      const lootLink = document.createElement('a');
+      lootLink.href = 'loot.html?arc=' + arc.id;
+      lootLink.textContent = 'View Loot';
+      lootLink.onclick = e => e.stopPropagation();
+      Object.assign(lootLink.style, {
+        display: 'inline-block', marginTop: '8px', fontSize: '0.72rem',
+        fontWeight: '600', color: 'var(--accent)', textDecoration: 'none',
+        border: '1px solid var(--accent)', borderRadius: '4px', padding: '3px 10px'
+      });
+      card.querySelector('.arc-info').appendChild(lootLink);
       card.addEventListener('click', () => openModal(arc));
       grid.appendChild(card);
     });

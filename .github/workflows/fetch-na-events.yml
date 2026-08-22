@@ -1,0 +1,43 @@
+name: Refresh NA Events
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch events from metaforge (NA runner IP)
+        run: |
+          curl -sf \
+            -H "Accept: application/json" \
+            -H "User-Agent: Mozilla/5.0 (compatible)" \
+            "https://metaforge.app/api/arc-raiders/events-schedule" \
+            -o /tmp/events-fresh.json
+          python3 - <<'PY'
+          import json, sys
+          d = json.load(open('/tmp/events-fresh.json'))
+          arr = d if isinstance(d, list) else d.get('data', [])
+          if not arr:
+              sys.exit('empty events')
+          print(f'OK: {len(arr)} events')
+          json.dump(arr, open('events-na.json', 'w'))
+          PY
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add events-na.json
+          git diff --quiet --cached || git commit -m "chore: refresh NA events [skip ci]"
+          git push

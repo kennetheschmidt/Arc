@@ -283,24 +283,75 @@
     'https://metaforge.app/api/arc-raiders/database',
   ];
 
+  async function tryFetch(url) {
+    for (const proxyFn of PROXIES) {
+      try {
+        const res = await fetch(proxyFn(url), { headers: { Accept: 'application/json' } });
+        if (!res.ok) continue;
+        const text = await res.text();
+        const trimmed = text.trim();
+        if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) continue;
+        return JSON.parse(text);
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  function extractItems(json) {
+    if (!json) return null;
+    if (Array.isArray(json) && json.length) return json;
+    const data = json.data ?? json.items ?? json.results ?? json.loot ?? null;
+    if (Array.isArray(data) && data.length) return data;
+    if (data && typeof data === 'object') {
+      const arr = Object.values(data).find(v => Array.isArray(v) && v.length > 0);
+      if (arr) return arr;
+    }
+    return null;
+  }
+
   async function fetchAllItems() {
-    for (const url of API_ENDPOINTS) {
-      for (const proxyFn of PROXIES) {
-        try {
-          const res = await fetch(proxyFn(url), { headers: { Accept: 'application/json' } });
-          if (!res.ok) continue;
-          const text = await res.text();
-          const trimmed = text.trim();
-          if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) continue;
-          const json = JSON.parse(text);
-          const data = json.data ?? json.items ?? json;
-          if (Array.isArray(data) && data.length > 0) return data;
-          if (data && typeof data === 'object') {
-            const arr = Object.values(data).find(v => Array.isArray(v) && v.length > 0);
-            if (arr) return arr;
-          }
-        } catch (_) {}
+    for (const baseUrl of API_ENDPOINTS) {
+      // Try first page to discover pagination shape
+      const first = await tryFetch(`${baseUrl}?limit=100&page=1`);
+      if (!first) { await tryFetch(baseUrl); continue; }  // try without params too
+
+      const firstItems = extractItems(first);
+      if (!firstItems) continue;
+
+      // Detect total / page count from common response shapes
+      const total  = first.total  ?? first.count    ?? first.totalCount ?? null;
+      const pages  = first.pages  ?? first.pageCount ?? first.last_page  ?? null;
+      const limit  = first.limit  ?? first.per_page  ?? 100;
+
+      let allItems = [...firstItems];
+
+      if (total && total > allItems.length) {
+        // Calculate how many more pages we need
+        const totalPages = pages ?? Math.ceil(total / limit);
+        const fetches = [];
+        for (let p = 2; p <= totalPages; p++) {
+          fetches.push(tryFetch(`${baseUrl}?limit=${limit}&page=${p}`));
+        }
+        const results = await Promise.all(fetches);
+        for (const r of results) {
+          const items = extractItems(r);
+          if (items) allItems.push(...items);
+        }
+      } else if (firstItems.length >= 50) {
+        // No total provided but got a full page — try offset-based pagination
+        let offset = firstItems.length;
+        while (true) {
+          const next = await tryFetch(`${baseUrl}?limit=${limit}&offset=${offset}`);
+          const items = extractItems(next);
+          if (!items || items.length === 0) break;
+          allItems.push(...items);
+          if (items.length < limit) break;  // last page
+          offset += items.length;
+          if (offset > 2000) break;  // safety cap
+        }
       }
+
+      if (allItems.length > 0) return allItems;
     }
     return null;
   }
@@ -402,6 +453,7 @@
 
   // ── INIT ──────────────────────────────────────────────────────────────────
   async function init() {
+    document.querySelector('#loading').innerHTML = '<div class="spinner"></div>Loading items database…';
     const data = await fetchAllItems();
     document.getElementById('loading').style.display = 'none';
     const grid = document.getElementById('item-grid');

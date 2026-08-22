@@ -322,8 +322,13 @@
 
   async function fetchAllItems() {
     for (const baseUrl of API_ENDPOINTS) {
-      const first = await tryFetch(`${baseUrl}?limit=100&page=1`);
+      const first = await tryFetch(`${baseUrl}?limit=500&page=1`);
+      console.log('[items] endpoint:', baseUrl, '| raw keys:', first ? Object.keys(first) : 'null',
+        '| total:', first?.total, '| pages:', first?.pages, '| count:', first?.count,
+        '| limit:', first?.limit, '| per_page:', first?.per_page);
       const firstItems = extractItems(first);
+      console.log('[items] firstItems count:', firstItems ? firstItems.length : 'null',
+        '| sample id:', firstItems?.[0]?.id, '| sample name:', firstItems?.[0]?.name);
       if (!firstItems || firstItems.length === 0) continue;
 
       let allItems = dedup([...firstItems]);
@@ -345,7 +350,8 @@
         allItems.push(...items);
         allItems = dedup(allItems);
         saveCache(allItems);
-        return { rawCount: items.length, newCount: allItems.length - before };
+        const newCount = allItems.length - before;
+        return { rawCount: items.length, newCount };
       };
 
       saveCache(allItems);
@@ -355,7 +361,8 @@
       // Stop when two consecutive pages yield 0 new items (API wrapping or exhausted)
       let emptyRuns = 0;
       for (let page = 2; page <= 100 && emptyRuns < 2; page++) {
-        const { newCount } = await fetchAndAppend(`${baseUrl}?limit=100&page=${page}`);
+        const { newCount, rawCount } = await fetchAndAppend(`${baseUrl}?limit=500&page=${page}`);
+        console.log(`[items] page ${page}: rawCount=${rawCount} newCount=${newCount} total=${allItems.length}`);
         updateStatus(allItems.length);
         if (newCount === 0) { emptyRuns++; } else { emptyRuns = 0; }
       }

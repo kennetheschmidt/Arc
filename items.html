@@ -328,33 +328,39 @@
       const delay = ms => new Promise(r => setTimeout(r, ms));
       const loadingEl = document.querySelector('#loading');
 
-      const fetchNextPage = async (url) => {
-        await delay(400);  // 400 ms between requests
-        return tryFetch(url);
-      };
-
       const updateStatus = (loaded, total) => {
         if (loadingEl) loadingEl.innerHTML =
           `<div class="spinner"></div>Loading items… ${loaded}${total ? ' / ' + total : ''}`;
       };
 
+      const fetchAndAppend = async (url) => {
+        await delay(400);
+        const r = await tryFetch(url);
+        const items = extractItems(r);
+        if (items) {
+          allItems.push(...items);
+          // Save incrementally so a background pause doesn't lose progress
+          saveCache(allItems);
+        }
+        return items;
+      };
+
       if (total && total > allItems.length) {
         const totalPages = pages ?? Math.ceil(total / limit);
+        saveCache(allItems);  // save first page immediately
         updateStatus(allItems.length, total);
         for (let p = 2; p <= totalPages; p++) {
-          const r = await fetchNextPage(`${baseUrl}?limit=${limit}&page=${p}`);
-          const items = extractItems(r);
-          if (items) allItems.push(...items);
+          const items = await fetchAndAppend(`${baseUrl}?limit=${limit}&page=${p}`);
           updateStatus(allItems.length, total);
+          if (!items) break;
         }
       } else if (firstItems.length >= 50) {
+        saveCache(allItems);  // save first page immediately
         let offset = firstItems.length;
         while (true) {
           updateStatus(allItems.length, null);
-          const next = await fetchNextPage(`${baseUrl}?limit=${limit}&offset=${offset}`);
-          const items = extractItems(next);
+          const items = await fetchAndAppend(`${baseUrl}?limit=${limit}&offset=${offset}`);
           if (!items || items.length === 0) break;
-          allItems.push(...items);
           if (items.length < limit) break;
           offset += items.length;
           if (offset > 2000) break;

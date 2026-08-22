@@ -221,6 +221,7 @@
   <button class="filter-btn" data-rarity="Rare" type="button">Rare</button>
   <button class="filter-btn" data-rarity="Uncommon" type="button">Uncommon</button>
   <button class="filter-btn" data-rarity="Common" type="button">Common</button>
+  <button class="filter-btn" id="reloadBtn" type="button" onclick="clearCache();init(true)" style="margin-left:auto;border-color:var(--border)">Load Data</button>
 </div>
 
 <div class="cat-tabs" id="catTabs"></div>
@@ -461,25 +462,81 @@
   }
 
   // ── INIT ──────────────────────────────────────────────────────────────────
-  async function init() {
-    document.querySelector('#loading').innerHTML = '<div class="spinner"></div>Loading items database…';
+  const CACHE_KEY = 'arc-items-v1';
+
+  function saveCache(items) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ items, ts: Date.now() })); } catch (_) {}
+  }
+
+  function loadCache() {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const { items, ts } = JSON.parse(raw);
+      return { items, ts };
+    } catch (_) { return null; }
+  }
+
+  function clearCache() {
+    try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
+  }
+
+  function formatAge(ts) {
+    const mins = Math.floor((Date.now() - ts) / 60000);
+    if (mins < 1)  return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24)  return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+
+  function setReloadBtn(ts, loading) {
+    const btn = document.getElementById('reloadBtn');
+    if (!btn) return;
+    if (loading) {
+      btn.textContent = 'Loading…';
+      btn.disabled = true;
+    } else {
+      btn.textContent = ts ? `Reload  ·  Updated ${formatAge(ts)}` : 'Load Data';
+      btn.disabled = false;
+    }
+  }
+
+  async function init(forceRefresh = false) {
+    const cached = !forceRefresh && loadCache();
+    if (cached) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('item-grid').style.display = 'grid';
+      allItems = cached.items;
+      setReloadBtn(cached.ts, false);
+      buildCategories();
+      render();
+      return;
+    }
+
+    document.getElementById('loading').style.display = 'flex';
+    document.getElementById('item-grid').style.display = 'none';
+    setReloadBtn(null, true);
+
     const data = await fetchAllItems();
     document.getElementById('loading').style.display = 'none';
-    const grid = document.getElementById('item-grid');
-    grid.style.display = 'grid';
+    document.getElementById('item-grid').style.display = 'grid';
 
     if (!data) {
-      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+      document.getElementById('item-grid').innerHTML = `<div class="empty" style="grid-column:1/-1">
         <div style="margin-bottom:12px">Could not load items database.</div>
         <a href="https://metaforge.app/arc-raiders/database/items" target="_blank" rel="noopener"
            style="display:inline-block;padding:10px 20px;background:var(--accent);color:#000;font-weight:700;font-size:0.82rem;border-radius:8px;text-decoration:none">
           Browse on Metaforge →
         </a>
       </div>`;
+      setReloadBtn(null, false);
       return;
     }
 
+    saveCache(data);
     allItems = data;
+    setReloadBtn(Date.now(), false);
     buildCategories();
     render();
   }

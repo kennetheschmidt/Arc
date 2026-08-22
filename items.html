@@ -549,6 +549,9 @@
 
     saveCache(data);
     allItems = data;
+    // Log a weapon to see its level field
+    const sample = data.find(i => (i.item_type||i.type||'').toLowerCase().includes('weapon'));
+    if (sample) console.log('[items] weapon sample keys:', Object.keys(sample), JSON.stringify(sample).slice(0,400));
     setReloadBtn(Date.now(), false);
     buildCategories();
     render();

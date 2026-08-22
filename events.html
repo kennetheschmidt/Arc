@@ -379,6 +379,7 @@
     ];
 
     let raw = null;
+    let debugUrl = '';
     outer: for (const baseUrl of urls) {
       for (const proxyFn of PROXIES) {
         try {
@@ -391,6 +392,7 @@
           const events = json.data || (Array.isArray(json) ? json : null);
           if (events && events.length) {
             raw = events;
+            debugUrl = url;
             break outer;
           }
         } catch (_) {}
@@ -406,6 +408,8 @@
       startTick();
       document.getElementById('status').style.display = 'none';
       document.getElementById('app').style.display = '';
+      const dbg = document.getElementById('debug-info');
+      if (dbg) { dbg.textContent = `[${server}] via: ${debugUrl.slice(0,120)} | t0:${raw[0]?.startTime}`; dbg.style.display='block'; }
     } catch (e) {
       const el = document.getElementById('status');
       el.className = 'error';
@@ -612,6 +616,7 @@
   loadEvents();
 </script>
 
+<div id="debug-info" style="display:none;padding:8px 16px;background:#111;border-top:1px solid #e8a020;font-size:0.65rem;color:#aaa;word-break:break-all;font-family:monospace"></div>
 <footer style="text-align:center;padding:24px;margin-top:32px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--muted)">
   Data provided by <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener"
   style="color:var(--accent);text-decoration:none">metaforge.app</a>

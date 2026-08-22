@@ -238,6 +238,7 @@
         </div>
       </div>
       <div id="iModalDesc" class="item-modal-desc"></div>
+      <div class="item-tabs" id="iLevelTabs" style="display:none;border-bottom:1px solid var(--border)"></div>
       <div class="item-tabs" id="iModalTabs">
         <button class="item-tab active" data-tab="stats"         type="button">Stats<span class="tab-count"></span></button>
         <button class="item-tab"        data-tab="used_in"       type="button">Used In<span class="tab-count"></span></button>
@@ -310,6 +311,7 @@
     return null;
   }
 
+  // Deduplicate by exact id (eliminate truly identical API entries)
   function dedup(items) {
     const seen = new Set();
     return items.filter(item => {
@@ -318,6 +320,23 @@
       seen.add(key);
       return true;
     });
+  }
+
+  // Group items that share the same name into arrays, sorted by level
+  function groupByName(items) {
+    const map = new Map();
+    for (const item of items) {
+      const key = item.name || item.id || '';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(item);
+    }
+    for (const group of map.values()) {
+      group.sort((a, b) =>
+        (a.level ?? a.tier ?? a.rank ?? 0) - (b.level ?? b.tier ?? b.rank ?? 0) ||
+        (a.id || '').localeCompare(b.id || '')
+      );
+    }
+    return map; // Map<name, item[]>
   }
 
   async function fetchAllItems() {
@@ -409,9 +428,11 @@
   }
 
   function buildCategories() {
+    // Count by unique name groups so tab counts match visible cards
+    const groups = groupByName(allItems);
     const counts = {};
-    for (const item of allItems) {
-      const cat = getCategory(item);
+    for (const [, group] of groups) {
+      const cat = getCategory(group[0]);
       counts[cat] = (counts[cat] || 0) + 1;
     }
     const cats = Object.entries(counts).sort((a, b) => b[1] - a[1]);
@@ -421,7 +442,7 @@
     all.type = 'button';
     all.className = 'cat-tab active';
     all.dataset.cat = 'All';
-    all.innerHTML = `All <span class="cat-count">${allItems.length}</span>`;
+    all.innerHTML = `All <span class="cat-count">${groups.size}</span>`;
     tabs.appendChild(all);
     for (const [cat, count] of cats) {
       const btn = document.createElement('button');
@@ -434,40 +455,49 @@
   }
 
   // ── RENDER ────────────────────────────────────────────────────────────────
-  function filtered() {
+  function filteredItems() {
     const q = document.getElementById('search').value.toLowerCase();
     return allItems.filter(item => {
       const cat = getCategory(item);
-      const matchCat  = activeCategory === 'All' || cat === activeCategory;
-      const matchRar  = activeRarity === 'all' || (item.rarity || '').toLowerCase() === activeRarity.toLowerCase();
-      const matchQ    = !q || (item.name || '').toLowerCase().includes(q) || (item.item_type || '').toLowerCase().includes(q);
+      const matchCat = activeCategory === 'All' || cat === activeCategory;
+      const matchRar = activeRarity === 'all' || (item.rarity || '').toLowerCase() === activeRarity.toLowerCase();
+      const matchQ   = !q || (item.name || '').toLowerCase().includes(q) || (item.item_type || '').toLowerCase().includes(q);
       return matchCat && matchRar && matchQ;
     });
   }
 
   function render() {
-    const items = filtered();
+    const items = filteredItems();
     const grid = document.getElementById('item-grid');
     if (!items.length) {
       grid.innerHTML = '<div class="empty" style="grid-column:1/-1">No items found.</div>';
       return;
     }
-    // Sort by rarity then name
-    items.sort((a, b) =>
-      (RARITY_ORDER[a.rarity] ?? 9) - (RARITY_ORDER[b.rarity] ?? 9) ||
-      (a.name || '').localeCompare(b.name || '')
-    );
-    grid.innerHTML = items.map(item => {
-      const rar = (item.rarity || 'Common').toLowerCase();
-      const icon = item.icon || item.image || `https://cdn.metaforge.app/arc-raiders/icons/${nameToSlug(item.name || '')}.webp`;
-      const type = item.item_type || item.type || '';
-      return `<div class="item-card" data-id="${(item.id || nameToSlug(item.name || '')).replace(/"/g,'&quot;')}">
-        <div class="item-icon"><img src="${icon}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'"></div>
+
+    // Group by name, then sort groups by best rarity then name
+    const groups = groupByName(items);
+    const sorted = [...groups.entries()].sort(([nameA, ga], [nameB, gb]) => {
+      const bestA = Math.min(...ga.map(i => RARITY_ORDER[i.rarity] ?? 9));
+      const bestB = Math.min(...gb.map(i => RARITY_ORDER[i.rarity] ?? 9));
+      return bestA - bestB || nameA.localeCompare(nameB);
+    });
+
+    grid.innerHTML = sorted.map(([name, group]) => {
+      const primary = group[0];
+      const rar = (primary.rarity || 'Common').toLowerCase();
+      const icon = primary.icon || primary.image || `https://cdn.metaforge.app/arc-raiders/icons/${nameToSlug(name)}.webp`;
+      const type = primary.item_type || primary.type || '';
+      const lvlBadge = group.length > 1
+        ? `<span style="font-size:0.65rem;color:var(--accent);font-weight:700;letter-spacing:0.03em">${group.length} levels</span>`
+        : '';
+      return `<div class="item-card" data-name="${name.replace(/"/g,'&quot;')}">
+        <div class="item-icon"><img src="${icon}" alt="${name}" loading="lazy" onerror="this.style.display='none'"></div>
         <div class="item-info">
-          <div class="item-name">${item.name || item.id || '—'}</div>
+          <div class="item-name">${name || '—'}</div>
           <div class="item-meta">
-            <span class="rarity rarity-${rar}">${item.rarity || ''}</span>
+            <span class="rarity rarity-${rar}">${primary.rarity || ''}</span>
             <span class="item-type">${type}</span>
+            ${lvlBadge}
           </div>
         </div>
       </div>`;
@@ -521,8 +551,6 @@
       document.getElementById('loading').style.display = 'none';
       document.getElementById('item-grid').style.display = 'grid';
       allItems = dedup(cached.items);
-      console.log('[items] total cached:', allItems.length);
-      allItems.slice(0,3).forEach((s,i) => console.log(`[items] sample[${i}]:`, JSON.stringify(s).slice(0,500)));
       setReloadBtn(cached.ts, false);
       buildCategories();
       render();
@@ -551,8 +579,6 @@
 
     saveCache(data);
     allItems = data;
-    console.log('[items] total fetched:', data.length);
-    data.slice(0,3).forEach((s,i) => console.log(`[items] sample[${i}]:`, JSON.stringify(s).slice(0,500)));
     setReloadBtn(Date.now(), false);
     buildCategories();
     render();
@@ -583,15 +609,28 @@
   document.getElementById('item-grid').addEventListener('click', e => {
     const card = e.target.closest('.item-card');
     if (!card) return;
-    const id = card.dataset.id;
-    const item = allItems.find(i => (i.id || nameToSlug(i.name || '')) === id);
-    if (item) openItemModal(item);
+    const name = card.dataset.name;
+    const group = allItems.filter(i => (i.name || i.id) === name);
+    if (group.length) openItemModal(group);
   });
 
   // ── MODAL ─────────────────────────────────────────────────────────────────
   let activeTab = 'stats';
+  let currentGroup = [];
 
-  function openItemModal(item) {
+  function openItemModal(group) {
+    currentGroup = group;
+    renderModalLevel(0);
+    document.getElementById('itemModalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function setGroupLevel(idx) { renderModalLevel(idx); }
+
+  function renderModalLevel(idx) {
+    const item = currentGroup[idx];
+
+    // Header
     const icon = item.icon || item.image || `https://cdn.metaforge.app/arc-raiders/icons/${nameToSlug(item.name || '')}.webp`;
     document.getElementById('iModalIcon').src = icon;
     document.getElementById('iModalIcon').alt = item.name || '';
@@ -603,33 +642,48 @@
       (item.value ? `<span>⬡ ${item.value.toLocaleString()}</span>` : '');
     document.getElementById('iModalDesc').textContent = item.description || '';
 
+    // Level selector
+    const levelEl = document.getElementById('iLevelTabs');
+    if (currentGroup.length > 1) {
+      levelEl.style.display = 'flex';
+      levelEl.innerHTML = currentGroup.map((lvlItem, i) => {
+        const label = lvlItem.level != null ? `Lv ${lvlItem.level}` : `Level ${i + 1}`;
+        const lvlRar = (lvlItem.rarity || '').toLowerCase();
+        return `<button type="button" class="item-tab${i === idx ? ' active' : ''}" onclick="setGroupLevel(${i})" style="display:flex;align-items:center;gap:5px">
+          ${label}<span class="rarity rarity-${lvlRar}" style="font-size:0.6rem;padding:1px 5px">${lvlItem.rarity || ''}</span>
+        </button>`;
+      }).join('');
+    } else {
+      levelEl.style.display = 'none';
+    }
+
     // Stats tab
     const stats = item.stat_block || {};
     const statFields = [
-      { label: 'Weight',   val: stats.weight },
-      { label: 'Damage',   val: stats.damage },
-      { label: 'Health',   val: stats.health },
-      { label: 'Shield',   val: stats.shield },
-      { label: 'Range',    val: stats.range  },
-      { label: 'Radius',   val: stats.radius },
-      { label: 'Workbench',val: item.workbench },
-      { label: 'Value',    val: item.value   },
+      { label: 'Weight',    val: stats.weight },
+      { label: 'Damage',    val: stats.damage },
+      { label: 'Health',    val: stats.health },
+      { label: 'Shield',    val: stats.shield },
+      { label: 'Range',     val: stats.range  },
+      { label: 'Radius',    val: stats.radius },
+      { label: 'Workbench', val: item.workbench },
+      { label: 'Value',     val: item.value   },
     ].filter(s => s.val !== undefined && s.val !== null && s.val !== 0 && s.val !== '');
 
     document.getElementById('panel-stats').innerHTML = statFields.length
       ? `<div class="stat-grid">${statFields.map(s => `<div class="stat-row"><span class="stat-label">${s.label}</span><span class="stat-val">${s.val}</span></div>`).join('')}</div>`
       : `<div class="detail-empty">No stats available.</div>`;
 
-    // Relationship tabs from item data
-    const tabs = {
-      used_in:       item.used_in        || item.usedIn        || item.crafting_uses  || [],
-      dropped_by:    item.dropped_by     || item.droppedBy     || item.sources        || [],
-      recycles_into: item.recycles_into  || item.recyclesInto  || item.recycle_into   || [],
-      recycled_from: item.recycled_from  || item.recycledFrom  || item.recycle_from   || [],
+    // Relationship tabs
+    const relTabs = {
+      used_in:       item.used_in       || item.usedIn       || item.crafting_uses || [],
+      dropped_by:    item.dropped_by    || item.droppedBy    || item.sources       || [],
+      recycles_into: item.recycles_into || item.recyclesInto || item.recycle_into  || [],
+      recycled_from: item.recycled_from || item.recycledFrom || item.recycle_from  || [],
     };
 
     ['used_in','dropped_by','recycles_into','recycled_from'].forEach(key => {
-      const rows = tabs[key];
+      const rows = relTabs[key];
       const tab   = document.querySelector(`[data-tab="${key}"]`);
       const panel = document.getElementById(`panel-${key}`);
       tab.querySelector('.tab-count').textContent = rows.length || '';
@@ -639,22 +693,20 @@
         ${isDroppedBy ? '' : '<th>Qty</th>'}<th>Name</th><th>Type</th>
       </tr></thead><tbody>
         ${rows.map(r => {
-          const name = r.name || r.item_name || r.arc_name || r.id || '—';
-          const type = r.type || r.item_type || r.category || '—';
-          const qty  = r.quantity || r.qty || r.count || r.amount || '';
+          const rName = r.name || r.item_name || r.arc_name || r.id || '—';
+          const rType = r.type || r.item_type || r.category || '—';
+          const qty   = r.quantity || r.qty || r.count || r.amount || '';
           const icon2 = r.icon || r.image || '';
           return `<tr>
             ${isDroppedBy ? '' : `<td style="color:var(--muted);font-size:0.8rem;width:36px">${qty}</td>`}
-            <td>${icon2 ? `<img class="detail-img" src="${icon2}" onerror="this.style.display='none'">` : ''}${name}</td>
-            <td style="color:var(--muted);font-size:0.78rem">${type}</td>
+            <td>${icon2 ? `<img class="detail-img" src="${icon2}" onerror="this.style.display='none'">` : ''}${rName}</td>
+            <td style="color:var(--muted);font-size:0.78rem">${rType}</td>
           </tr>`;
         }).join('')}
       </tbody></table>`;
     });
 
     setModalTab('stats');
-    document.getElementById('itemModalOverlay').classList.add('open');
-    document.body.style.overflow = 'hidden';
   }
 
   function setModalTab(key) {

@@ -310,6 +310,7 @@
 </div>
 
 <main>
+  <div id="debug-info" style="background:#1a0a00;color:#f90;font-size:0.7rem;padding:10px 16px;word-break:break-all;white-space:pre-wrap;display:block"></div>
   <div id="status"><div class="spinner"></div>Loading events…</div>
   <div id="app" style="display:none">
     <div id="now-section"></div>
@@ -332,13 +333,14 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const raw = json.data || [];
-      console.log('[events] total raw:', raw.length, '| sample[0]:', JSON.stringify(raw[0]).slice(0,400));
+      // Show debug info on page
+      const dbg = document.getElementById('debug-info');
+      if (dbg) dbg.textContent = `total:${raw.length} | sample: ${JSON.stringify(raw[0]).slice(0,500)}`;
       // Filter to NA server if region/server field present
       const naOnly = raw.filter(e => {
         const r = (e.server || e.region || e.serverRegion || '').toUpperCase();
         return !r || r === 'NA' || r.includes('NA') || r.includes('NORTH');
       });
-      console.log('[events] naOnly:', naOnly.length);
       allEvents = naOnly.length ? naOnly : raw;
       buildFilterButtons();
       render();

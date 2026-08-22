@@ -319,7 +319,13 @@
 </main>
 
 <script>
-  const API = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/events-schedule%3Fserver%3DNA';
+  const BASE_URL = 'https://metaforge.app/api/arc-raiders/events-schedule';
+  const EVENT_PROXIES = [
+    u => u,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+  ];
 
   let allEvents = [];
   let activeMap = 'all';
@@ -328,11 +334,21 @@
 
   // ── FETCH ─────────────────────────────────────────────────────────────────
   async function loadEvents() {
+    let raw = null;
+    for (const proxyFn of EVENT_PROXIES) {
+      try {
+        const url = proxyFn(BASE_URL);
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        if (!res.ok) continue;
+        const text = await res.text();
+        if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) continue;
+        const json = JSON.parse(text);
+        raw = json.data || (Array.isArray(json) ? json : null);
+        if (raw && raw.length) break;
+      } catch (_) {}
+    }
     try {
-      const res = await fetch(API);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const raw = json.data || [];
+      if (!raw || !raw.length) throw new Error('No data from any source');
       // Show debug info on page
       const dbg = document.getElementById('debug-info');
       if (dbg) dbg.textContent = `total:${raw.length} | sample: ${JSON.stringify(raw[0]).slice(0,500)}`;

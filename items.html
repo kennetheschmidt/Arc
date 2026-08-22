@@ -324,30 +324,39 @@
       const limit  = first.limit  ?? first.per_page  ?? 100;
 
       let allItems = [...firstItems];
+      const delay = ms => new Promise(r => setTimeout(r, ms));
+      const loadingEl = document.querySelector('#loading');
+
+      const fetchNextPage = async (url) => {
+        await delay(400);  // 400 ms between requests
+        return tryFetch(url);
+      };
+
+      const updateStatus = (loaded, total) => {
+        if (loadingEl) loadingEl.innerHTML =
+          `<div class="spinner"></div>Loading items… ${loaded}${total ? ' / ' + total : ''}`;
+      };
 
       if (total && total > allItems.length) {
-        // Calculate how many more pages we need
         const totalPages = pages ?? Math.ceil(total / limit);
-        const fetches = [];
+        updateStatus(allItems.length, total);
         for (let p = 2; p <= totalPages; p++) {
-          fetches.push(tryFetch(`${baseUrl}?limit=${limit}&page=${p}`));
-        }
-        const results = await Promise.all(fetches);
-        for (const r of results) {
+          const r = await fetchNextPage(`${baseUrl}?limit=${limit}&page=${p}`);
           const items = extractItems(r);
           if (items) allItems.push(...items);
+          updateStatus(allItems.length, total);
         }
       } else if (firstItems.length >= 50) {
-        // No total provided but got a full page — try offset-based pagination
         let offset = firstItems.length;
         while (true) {
-          const next = await tryFetch(`${baseUrl}?limit=${limit}&offset=${offset}`);
+          updateStatus(allItems.length, null);
+          const next = await fetchNextPage(`${baseUrl}?limit=${limit}&offset=${offset}`);
           const items = extractItems(next);
           if (!items || items.length === 0) break;
           allItems.push(...items);
-          if (items.length < limit) break;  // last page
+          if (items.length < limit) break;
           offset += items.length;
-          if (offset > 2000) break;  // safety cap
+          if (offset > 2000) break;
         }
       }
 

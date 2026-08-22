@@ -310,6 +310,16 @@
     return null;
   }
 
+  function dedup(items) {
+    const seen = new Set();
+    return items.filter(item => {
+      const key = item.id || item.name;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
   async function fetchAllItems() {
     for (const baseUrl of API_ENDPOINTS) {
       // Try first page to discover pagination shape
@@ -339,7 +349,7 @@
         const items = extractItems(r);
         if (items) {
           allItems.push(...items);
-          // Save incrementally so a background pause doesn't lose progress
+          allItems = dedup(allItems);
           saveCache(allItems);
         }
         return items;
@@ -367,7 +377,7 @@
         }
       }
 
-      if (allItems.length > 0) return allItems;
+      if (allItems.length > 0) return dedup(allItems);
     }
     return null;
   }
@@ -468,7 +478,7 @@
   }
 
   // ── INIT ──────────────────────────────────────────────────────────────────
-  const CACHE_KEY = 'arc-items-v1';
+  const CACHE_KEY = 'arc-items-v2';
 
   function saveCache(items) {
     try { localStorage.setItem(CACHE_KEY, JSON.stringify({ items, ts: Date.now() })); } catch (_) {}
@@ -513,7 +523,7 @@
     if (cached) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('item-grid').style.display = 'grid';
-      allItems = cached.items;
+      allItems = dedup(cached.items);
       setReloadBtn(cached.ts, false);
       buildCategories();
       render();

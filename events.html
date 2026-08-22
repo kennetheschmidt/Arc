@@ -318,26 +318,9 @@
 </main>
 
 <script>
-  // Try several server param names and path patterns — stop at first that returns data
-  const BASE = 'https://metaforge.app/api/arc-raiders';
   const SERVER_URLS = [
-    // Path-segment variants
-    `${BASE}/na/events-schedule`,
-    `${BASE}/events-schedule/na`,
-    `${BASE}/events/schedule?server=na`,
-    // Query param variants
-    `${BASE}/events-schedule?server=NA`,
-    `${BASE}/events-schedule?server=na`,
-    `${BASE}/events-schedule?region=NA`,
-    `${BASE}/events-schedule?region=na`,
-    `${BASE}/events-schedule?server_region=NA`,
-    `${BASE}/events-schedule?s=NA`,
-    `${BASE}/events-schedule?loc=NA`,
-    `${BASE}/events-schedule?geo=NA`,
-    `${BASE}/events-schedule?cluster=na`,
-    `${BASE}/events-schedule?serverTag=NA`,
-    // Bare fallback (EU by default)
-    `${BASE}/events-schedule`,
+    'https://metaforge.app/api/arc-raiders/events-schedule?server=NA',
+    'https://metaforge.app/api/arc-raiders/events-schedule',
   ];
   const EVENT_PROXIES = [
     u => u,
@@ -388,13 +371,6 @@
       startTick();
       document.getElementById('status').style.display = 'none';
       document.getElementById('app').style.display = '';
-      // Temporary debug — shows at bottom of page
-      const dbg = document.getElementById('debug-info');
-      if (dbg) {
-        const sample = raw[0] || {};
-        dbg.textContent = `URL: ${usedUrl} | count:${raw.length} | keys:${Object.keys(sample).join(',')} | sample:${JSON.stringify(sample).slice(0,200)}`;
-        dbg.style.display = 'block';
-      }
     } catch (e) {
       const el = document.getElementById('status');
       el.className = 'error';
@@ -594,7 +570,6 @@
   loadEvents();
 </script>
 
-<div id="debug-info" style="display:none;padding:10px 16px;background:#1a1a2e;border-top:1px solid #e8a020;font-size:0.65rem;color:#aaa;word-break:break-all;font-family:monospace;line-height:1.5"></div>
 <footer style="text-align:center;padding:24px;margin-top:32px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--muted)">
   Data provided by <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener"
   style="color:var(--accent);text-decoration:none">metaforge.app</a>

@@ -299,6 +299,14 @@
 <div class="rainbow-bar"></div>
 
 <div id="filters">
+  <div class="filter-row" id="server-filters">
+    <span class="filter-label">Server</span>
+    <button class="filter-btn" data-server="EU">EU</button>
+    <button class="filter-btn active" data-server="NA">NA</button>
+    <button class="filter-btn" data-server="SA">SA</button>
+    <button class="filter-btn" data-server="ASIA">ASIA</button>
+    <button class="filter-btn" data-server="OCE">OCE</button>
+  </div>
   <div class="filter-row" id="map-filters">
     <span class="filter-label">Map</span>
     <button class="filter-btn active" data-map="all">All</button>
@@ -318,11 +326,8 @@
 </main>
 
 <script>
-  const SERVER_URLS = [
-    'https://metaforge.app/api/arc-raiders/events-schedule?server=NA',
-    'https://metaforge.app/api/arc-raiders/events-schedule',
-  ];
-  const EVENT_PROXIES = [
+  const BASE_API = 'https://metaforge.app/api/arc-raiders/events-schedule';
+  const PROXIES = [
     u => u,
     u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
@@ -332,18 +337,53 @@
   let allEvents = [];
   let activeMap = 'all';
   let activeEvent = 'all';
+  let activeServer = 'NA';
   let tickTimer = null;
+  const serverCache = {};
+
+  // ── SERVER SELECTOR ───────────────────────────────────────────────────────
+  document.querySelectorAll('#server-filters .filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#server-filters .filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeServer = btn.dataset.server;
+      loadEvents();
+    });
+  });
 
   // ── FETCH ─────────────────────────────────────────────────────────────────
   async function loadEvents() {
+    const server = activeServer;
+
+    // Return cached data if available for this server
+    if (serverCache[server]) {
+      allEvents = serverCache[server];
+      buildFilterButtons();
+      render();
+      startTick();
+      document.getElementById('status').style.display = 'none';
+      document.getElementById('app').style.display = '';
+      return;
+    }
+
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('status').style.display = '';
+    document.getElementById('status').className = '';
+    document.getElementById('status').innerHTML = '<div class="spinner"></div>Loading events…';
+
+    const urls = [
+      `${BASE_API}?server=${server}`,
+      `${BASE_API}?server=${server.toLowerCase()}`,
+      `${BASE_API}?region=${server}`,
+      BASE_API,
+    ];
+
     let raw = null;
-    let topLevel = null;
-    let usedUrl = '';
-    outer: for (const baseUrl of SERVER_URLS) {
-      for (const proxyFn of EVENT_PROXIES) {
+    outer: for (const baseUrl of urls) {
+      for (const proxyFn of PROXIES) {
         try {
           const url = proxyFn(baseUrl);
-          const res = await fetch(url, { headers: { Accept: 'application/json' } });
+          const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
           if (!res.ok) continue;
           const text = await res.text();
           if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) continue;
@@ -351,21 +391,16 @@
           const events = json.data || (Array.isArray(json) ? json : null);
           if (events && events.length) {
             raw = events;
-            topLevel = json;
-            usedUrl = baseUrl;
             break outer;
           }
         } catch (_) {}
       }
     }
+
     try {
       if (!raw || !raw.length) throw new Error('No data from any source');
-      // Filter to NA server if region/server field present
-      const naOnly = raw.filter(e => {
-        const r = (e.server || e.region || e.serverRegion || '').toUpperCase();
-        return !r || r === 'NA' || r.includes('NA') || r.includes('NORTH');
-      });
-      allEvents = naOnly.length ? naOnly : raw;
+      serverCache[server] = raw;
+      allEvents = raw;
       buildFilterButtons();
       render();
       startTick();
@@ -375,7 +410,7 @@
       const el = document.getElementById('status');
       el.className = 'error';
       el.innerHTML = `&#9888; Failed to load events: ${e.message}<br>
-        <button onclick="location.reload()" style="margin-top:12px;padding:8px 20px;
+        <button onclick="loadEvents()" style="margin-top:12px;padding:8px 20px;
         background:var(--accent);border:none;border-radius:6px;cursor:pointer;
         font-weight:600;color:#000">Retry</button>`;
     }

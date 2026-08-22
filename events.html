@@ -350,17 +350,24 @@
 
     // 2. Fall back to CORS proxy if cache not available yet
     if (!raw) {
-      outer: for (const proxyFn of PROXIES) {
+      for (const proxyFn of PROXIES) {
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 5000);
         try {
           const url = proxyFn(BASE_API);
-          const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+          const res = await fetch(url, {
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+            signal: ctl.signal,
+          });
+          clearTimeout(timer);
           if (!res.ok) continue;
           const text = await res.text();
           if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) continue;
           const json = JSON.parse(text);
           const events = json.data || (Array.isArray(json) ? json : null);
-          if (events && events.length) { raw = events; break outer; }
-        } catch (_) {}
+          if (events && events.length) { raw = events; break; }
+        } catch (_) { clearTimeout(timer); }
       }
     }
 

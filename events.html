@@ -417,12 +417,35 @@
   }
 
   // ── FILTER BUTTONS ────────────────────────────────────────────────────────
+  // Set up click handlers once via delegation — works for dynamically added buttons
+  const mapBar   = document.getElementById('map-filters');
+  const eventBar = document.getElementById('event-filters');
+
+  mapBar.addEventListener('click', e => {
+    const btn = e.target.closest('[data-map]');
+    if (!btn) return;
+    activeMap = btn.dataset.map;
+    mapBar.querySelectorAll('[data-map]').forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+
+  eventBar.addEventListener('click', e => {
+    const btn = e.target.closest('[data-event]');
+    if (!btn) return;
+    activeEvent = btn.dataset.event;
+    eventBar.querySelectorAll('[data-event]').forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+
   function buildFilterButtons() {
     const maps   = [...new Set(allEvents.map(e => e.map))].sort();
     const events = [...new Set(allEvents.map(e => e.name))].sort();
 
-    const mapBar   = document.getElementById('map-filters');
-    const eventBar = document.getElementById('event-filters');
+    // Reset to just the "All" button before rebuilding
+    mapBar.innerHTML   = '<span class="filter-label">Map</span><button class="filter-btn active" data-map="all">All</button>';
+    eventBar.innerHTML = '<span class="filter-label">Event</span><button class="filter-btn active" data-event="all">All</button>';
+    activeMap = 'all';
+    activeEvent = 'all';
 
     maps.forEach(map => {
       const btn = document.createElement('button');
@@ -438,22 +461,6 @@
       btn.dataset.event = name;
       btn.textContent = name;
       eventBar.appendChild(btn);
-    });
-
-    mapBar.addEventListener('click', e => {
-      const btn = e.target.closest('[data-map]');
-      if (!btn) return;
-      activeMap = btn.dataset.map;
-      mapBar.querySelectorAll('[data-map]').forEach(b => b.classList.toggle('active', b === btn));
-      render();
-    });
-
-    eventBar.addEventListener('click', e => {
-      const btn = e.target.closest('[data-event]');
-      if (!btn) return;
-      activeEvent = btn.dataset.event;
-      eventBar.querySelectorAll('[data-event]').forEach(b => b.classList.toggle('active', b === btn));
-      render();
     });
   }
 

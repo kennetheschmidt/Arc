@@ -521,6 +521,8 @@
       document.getElementById('loading').style.display = 'none';
       document.getElementById('item-grid').style.display = 'grid';
       allItems = dedup(cached.items);
+      const sample = allItems.find(i => (i.item_type||i.type||'').toLowerCase().includes('weapon'));
+      if (sample) console.log('[items] weapon sample keys:', Object.keys(sample), JSON.stringify(sample).slice(0,400));
       setReloadBtn(cached.ts, false);
       buildCategories();
       render();

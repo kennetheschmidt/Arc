@@ -318,7 +318,7 @@
 </main>
 
 <script>
-  const API = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/events-schedule';
+  const API = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/events-schedule%3Fserver%3DNA';
 
   let allEvents = [];
   let activeMap = 'all';
@@ -331,7 +331,13 @@
       const res = await fetch(API);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      allEvents = json.data || [];
+      const raw = json.data || [];
+      // Filter to NA server if region/server field present
+      const naOnly = raw.filter(e => {
+        const r = (e.server || e.region || e.serverRegion || '').toUpperCase();
+        return !r || r === 'NA' || r.includes('NA') || r.includes('NORTH');
+      });
+      allEvents = naOnly.length ? naOnly : raw;
       buildFilterButtons();
       render();
       startTick();

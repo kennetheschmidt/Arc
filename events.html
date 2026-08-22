@@ -299,14 +299,6 @@
 <div class="rainbow-bar"></div>
 
 <div id="filters">
-  <div class="filter-row" id="server-filters">
-    <span class="filter-label">Server</span>
-    <button class="filter-btn" data-server="EU">EU</button>
-    <button class="filter-btn active" data-server="NA">NA</button>
-    <button class="filter-btn" data-server="SA">SA</button>
-    <button class="filter-btn" data-server="ASIA">ASIA</button>
-    <button class="filter-btn" data-server="OCE">OCE</button>
-  </div>
   <div class="filter-row" id="map-filters">
     <span class="filter-label">Map</span>
     <button class="filter-btn active" data-map="all">All</button>
@@ -326,7 +318,10 @@
 </main>
 
 <script>
-  const BASE_API = 'https://metaforge.app/api/arc-raiders/events-schedule';
+  // Same-origin cached file (written by GitHub Actions NA runner — no CORS needed).
+  // Falls back to CORS proxy if cache isn't available yet.
+  const CACHE_URL = './events-na.json';
+  const BASE_API  = 'https://metaforge.app/api/arc-raiders/events-schedule';
   const PROXIES = [
     u => u,
     u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
@@ -337,79 +332,46 @@
   let allEvents = [];
   let activeMap = 'all';
   let activeEvent = 'all';
-  let activeServer = 'NA';
   let tickTimer = null;
-  const serverCache = {};
-
-  // ── SERVER SELECTOR ───────────────────────────────────────────────────────
-  document.querySelectorAll('#server-filters .filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#server-filters .filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeServer = btn.dataset.server;
-      loadEvents();
-    });
-  });
 
   // ── FETCH ─────────────────────────────────────────────────────────────────
   async function loadEvents() {
-    const server = activeServer;
-
-    // Return cached data if available for this server
-    if (serverCache[server]) {
-      allEvents = serverCache[server];
-      buildFilterButtons();
-      render();
-      startTick();
-      document.getElementById('status').style.display = 'none';
-      document.getElementById('app').style.display = '';
-      return;
-    }
-
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('status').style.display = '';
-    document.getElementById('status').className = '';
-    document.getElementById('status').innerHTML = '<div class="spinner"></div>Loading events…';
-
-    const urls = [
-      `${BASE_API}?server=${server}`,
-      `${BASE_API}?server=${server.toLowerCase()}`,
-      `${BASE_API}?region=${server}`,
-      BASE_API,
-    ];
-
     let raw = null;
-    let debugUrl = '';
-    outer: for (const baseUrl of urls) {
-      for (const proxyFn of PROXIES) {
+
+    // 1. Try same-origin cached file (no CORS, always NA events)
+    try {
+      const res = await fetch(CACHE_URL, { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        const events = Array.isArray(json) ? json : json.data;
+        if (events && events.length) raw = events;
+      }
+    } catch (_) {}
+
+    // 2. Fall back to CORS proxy if cache not available yet
+    if (!raw) {
+      outer: for (const proxyFn of PROXIES) {
         try {
-          const url = proxyFn(baseUrl);
+          const url = proxyFn(BASE_API);
           const res = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
           if (!res.ok) continue;
           const text = await res.text();
           if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) continue;
           const json = JSON.parse(text);
           const events = json.data || (Array.isArray(json) ? json : null);
-          if (events && events.length) {
-            raw = events;
-            debugUrl = url;
-            break outer;
-          }
+          if (events && events.length) { raw = events; break outer; }
         } catch (_) {}
       }
     }
 
     try {
       if (!raw || !raw.length) throw new Error('No data from any source');
-      serverCache[server] = raw;
       allEvents = raw;
       buildFilterButtons();
       render();
       startTick();
       document.getElementById('status').style.display = 'none';
       document.getElementById('app').style.display = '';
-      const dbg = document.getElementById('debug-info');
-      if (dbg) { dbg.textContent = `[${server}] via: ${debugUrl.slice(0,120)} | t0:${raw[0]?.startTime}`; dbg.style.display='block'; }
     } catch (e) {
       const el = document.getElementById('status');
       el.className = 'error';
@@ -616,7 +578,6 @@
   loadEvents();
 </script>
 
-<div id="debug-info" style="display:none;padding:8px 16px;background:#111;border-top:1px solid #e8a020;font-size:0.65rem;color:#aaa;word-break:break-all;font-family:monospace"></div>
 <footer style="text-align:center;padding:24px;margin-top:32px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--muted)">
   Data provided by <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener"
   style="color:var(--accent);text-decoration:none">metaforge.app</a>

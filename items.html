@@ -521,8 +521,8 @@
       document.getElementById('loading').style.display = 'none';
       document.getElementById('item-grid').style.display = 'grid';
       allItems = dedup(cached.items);
-      const sample = allItems.find(i => (i.item_type||i.type||'').toLowerCase().includes('weapon'));
-      if (sample) console.log('[items] weapon sample keys:', Object.keys(sample), JSON.stringify(sample).slice(0,400));
+      console.log('[items] total cached:', allItems.length);
+      allItems.slice(0,3).forEach((s,i) => console.log(`[items] sample[${i}]:`, JSON.stringify(s).slice(0,500)));
       setReloadBtn(cached.ts, false);
       buildCategories();
       render();
@@ -551,9 +551,8 @@
 
     saveCache(data);
     allItems = data;
-    // Log a weapon to see its level field
-    const sample = data.find(i => (i.item_type||i.type||'').toLowerCase().includes('weapon'));
-    if (sample) console.log('[items] weapon sample keys:', Object.keys(sample), JSON.stringify(sample).slice(0,400));
+    console.log('[items] total fetched:', data.length);
+    data.slice(0,3).forEach((s,i) => console.log(`[items] sample[${i}]:`, JSON.stringify(s).slice(0,500)));
     setReloadBtn(Date.now(), false);
     buildCategories();
     render();

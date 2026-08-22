@@ -332,11 +332,13 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const raw = json.data || [];
+      console.log('[events] total raw:', raw.length, '| sample[0]:', JSON.stringify(raw[0]).slice(0,400));
       // Filter to NA server if region/server field present
       const naOnly = raw.filter(e => {
         const r = (e.server || e.region || e.serverRegion || '').toUpperCase();
         return !r || r === 'NA' || r.includes('NA') || r.includes('NORTH');
       });
+      console.log('[events] naOnly:', naOnly.length);
       allEvents = naOnly.length ? naOnly : raw;
       buildFilterButtons();
       render();

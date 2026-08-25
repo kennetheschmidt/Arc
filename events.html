@@ -344,11 +344,12 @@
       if (res.ok) {
         const json = await res.json();
         const events = Array.isArray(json) ? json : json.data;
-        if (events && events.length) raw = events;
+        const now = Date.now();
+        if (events && events.length && events.some(e => e.endTime > now)) raw = events;
       }
     } catch (_) {}
 
-    // 2. Fall back to CORS proxy if cache not available yet
+    // 2. Fall back to CORS proxy if cache missing or stale
     if (!raw) {
       for (const proxyFn of PROXIES) {
         const ctl = new AbortController();

@@ -1,6 +1,8 @@
 name: Refresh NA Events
 
 on:
+  schedule:
+    - cron: '0 */4 * * *'
   workflow_dispatch:
 
 permissions:

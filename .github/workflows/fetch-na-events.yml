@@ -4,12 +4,14 @@ name: Refresh Game Data
 # directly from every visitor's browser, so we snapshot each endpoint here and
 # serve the results same-origin from gh-pages.
 #
-# Events rotate hourly, so they refresh on a schedule. Items, arcs, quests and
-# traders are reference data that only move on a game patch - refresh those by
-# running this manually with scope "all".
+# Cadences differ by how often the data actually moves:
+#   events  - rotate hourly, so every 4 hours
+#   trials  - weekly reset is Tuesday 04:00 UTC, so just after that
+#   all     - items/arcs/traders only move on a game patch, so on demand
 on:
   schedule:
-    - cron: '0 */4 * * *'
+    - cron: '0 */4 * * *'    # events
+    - cron: '15 4 * * 2'     # trials, just after the Tuesday reset
   workflow_dispatch:
     inputs:
       scope:
@@ -18,6 +20,7 @@ on:
         options:
           - all
           - events
+          - trials
         default: all
 
 permissions:
@@ -33,9 +36,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Snapshot metaforge endpoints
-        # Scheduled runs supply no input, so they fall through to events only.
+        # Each cron maps to its own scope; a manual run uses the chosen input.
         env:
-          SCOPE: ${{ inputs.scope || 'events' }}
+          SCOPE: ${{ inputs.scope || (github.event.schedule == '15 4 * * 2' && 'trials' || 'events') }}
         run: |
           mkdir -p data
           python3 - <<'PY'
@@ -116,10 +119,12 @@ jobs:
                   json.dump(merged, f)
 
           print(f'scope: {scope}')
-          snapshot('events', '/events-schedule')
+          if scope in ('all', 'events'):
+              snapshot('events', '/events-schedule')
+          if scope in ('all', 'trials'):
+              snapshot('quests', '/quests')
           if scope == 'all':
               snapshot('arcs',    '/arcs', 'loot=true')
-              snapshot('quests',  '/quests')
               snapshot('items',   '/items')
               snapshot('traders', '/traders')
           PY
@@ -138,4 +143,4 @@ jobs:
           git diff --quiet --cached || git commit -m "chore: refresh game data (${SCOPE}) [skip ci]"
           git push
         env:
-          SCOPE: ${{ inputs.scope || 'events' }}
+          SCOPE: ${{ inputs.scope || (github.event.schedule == '15 4 * * 2' && 'trials' || 'events') }}

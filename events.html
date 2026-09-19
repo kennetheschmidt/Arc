@@ -320,13 +320,12 @@
 <script>
   // Same-origin cached file (written by GitHub Actions NA runner — no CORS needed).
   // Falls back to CORS proxy if cache isn't available yet.
-  const CACHE_URL = './events-na.json';
+  const CACHE_URL = './data/events.json';
   const BASE_API  = 'https://metaforge.app/api/arc-raiders/events-schedule';
   const PROXIES = [
     u => u,
     u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
   ];
 
   // The API serializes each event's wall-clock hour as a UTC timestamp, but the

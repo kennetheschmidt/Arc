@@ -329,6 +329,28 @@
     u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
   ];
 
+  // The API serializes each event's wall-clock hour as a UTC timestamp, but the
+  // schedule actually runs at that hour in the viewer's own region — every server
+  // region shares one rotation, offset by its local time. So read the UTC clock
+  // components back as local time. Confirmed against a logged-in NA view: blocks
+  // the feed labels 11:00/12:00 UTC ran at 11:00/12:00 PDT.
+  function toLocalWallClock(ms) {
+    const d = new Date(ms);
+    return new Date(
+      d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(),
+      d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()
+    ).getTime();
+  }
+
+  function normalizeEvents(events) {
+    if (!events || !events.length) return null;
+    return events.map(e => ({
+      ...e,
+      startTime: toLocalWallClock(e.startTime),
+      endTime:   toLocalWallClock(e.endTime),
+    }));
+  }
+
   let allEvents = [];
   let activeMap = 'all';
   let activeEvent = 'all';
@@ -338,14 +360,14 @@
   async function loadEvents() {
     let raw = null;
 
-    // 1. Try same-origin cached file (no CORS, always NA events)
+    // 1. Try same-origin cached file (no CORS, and metaforge asks that we cache)
     try {
       const res = await fetch(CACHE_URL, { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
-        const events = Array.isArray(json) ? json : json.data;
+        const events = normalizeEvents(Array.isArray(json) ? json : json.data);
         const now = Date.now();
-        if (events && events.length && events.some(e => e.endTime > now)) raw = events;
+        if (events && events.some(e => e.endTime > now)) raw = events;
       }
     } catch (_) {}
 
@@ -366,8 +388,8 @@
           const text = await res.text();
           if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) continue;
           const json = JSON.parse(text);
-          const events = json.data || (Array.isArray(json) ? json : null);
-          if (events && events.length) { raw = events; break; }
+          const events = normalizeEvents(json.data || (Array.isArray(json) ? json : null));
+          if (events) { raw = events; break; }
         } catch (_) { clearTimeout(timer); }
       }
     }

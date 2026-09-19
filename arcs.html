@@ -347,7 +347,41 @@
 </div>
 
 <script>
-  const PROXY_URL = 'https://corsproxy.io/?url=https://metaforge.app/api/arc-raiders/arcs?loot=true';
+  // Prefer the same-origin snapshot written by the Refresh Game Data workflow —
+  // no CORS, and metaforge asks that we not call their API from every browser.
+  // The proxies are only a fallback for when the snapshot is missing or stale.
+  const CACHE_URL = './data/arcs.json';
+  const SOURCE    = 'https://metaforge.app/api/arc-raiders/arcs?loot=true';
+  const PROXIES = [
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  ];
+
+  // Resolves to a parsed JSON payload, or null if every source failed.
+  async function fetchWithFallback(cacheUrl, sourceUrl, proxies) {
+    try {
+      const res = await fetch(cacheUrl, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    } catch (_) {}
+
+    for (const proxyFn of proxies) {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 8000);
+      try {
+        const res = await fetch(proxyFn(sourceUrl), {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+          signal: ctl.signal,
+        });
+        clearTimeout(timer);
+        if (!res.ok) continue;
+        const text = (await res.text()).trim();
+        if (!text.startsWith('{') && !text.startsWith('[')) continue;
+        return JSON.parse(text);
+      } catch (_) { clearTimeout(timer); }
+    }
+    return null;
+  }
 
   // Static loot data keyed by arc ID
   const CDN = 'https://cdn.metaforge.app/arc-raiders/icons/';
@@ -526,11 +560,10 @@
 
   async function loadArcs() {
     try {
-      const res = await fetch(PROXY_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
+      const json = await fetchWithFallback(CACHE_URL, SOURCE, PROXIES);
+      if (!json) throw new Error('no data from any source');
       // Prefer loot from API response; fall back to hardcoded table
-      allArcs = (json.data || []).map(arc => {
+      allArcs = (json.data || (Array.isArray(json) ? json : [])).map(arc => {
         const apiLoot = arc.loot && arc.loot.length ? arc.loot : null;
         return { ...arc, loot: apiLoot || LOOT[arc.id] || [] };
       });

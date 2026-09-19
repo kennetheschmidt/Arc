@@ -1,5 +1,8 @@
-name: Refresh NA Events
+name: Refresh Game Data
 
+# metaforge asks that consumers cache on their end rather than calling the API
+# directly from every visitor's browser, so we snapshot each endpoint here and
+# serve the results same-origin from gh-pages.
 on:
   schedule:
     - cron: '0 */4 * * *'
@@ -17,27 +20,41 @@ jobs:
           ref: gh-pages
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Fetch events from metaforge (NA runner IP)
+      - name: Snapshot metaforge endpoints
         run: |
-          curl -sf \
-            -H "Accept: application/json" \
-            -H "User-Agent: Mozilla/5.0 (compatible)" \
-            "https://metaforge.app/api/arc-raiders/events-schedule" \
-            -o /tmp/events-fresh.json
-          python3 - <<'PY'
-          import json, sys
-          d = json.load(open('/tmp/events-fresh.json'))
-          arr = d if isinstance(d, list) else d.get('data', [])
-          if not arr:
-              sys.exit('empty events')
-          print(f'OK: {len(arr)} events')
-          json.dump(arr, open('events-na.json', 'w'))
-          PY
+          mkdir -p data
+          fetch() {
+            name="$1"; url="$2"
+            if curl -sf --max-time 30 -H "Accept: application/json" "$url" -o "/tmp/$name.raw"; then
+              if python3 -c "import json,sys; json.load(open('/tmp/$name.raw'))" 2>/dev/null; then
+                mv "/tmp/$name.raw" "data/$name.json"
+                echo "OK   $name ($(wc -c < "data/$name.json") bytes)"
+              else
+                echo "SKIP $name (not valid JSON)"
+              fi
+            else
+              echo "SKIP $name (request failed)"
+            fi
+            sleep 2
+          }
 
-      - name: Commit and push
+          B="https://metaforge.app/api/arc-raiders"
+          fetch events  "$B/events-schedule"
+          fetch arcs    "$B/arcs?loot=true"
+          fetch quests  "$B/quests"
+          fetch items   "$B/items"
+          fetch traders "$B/traders"
+
+          # Keep the legacy path alive for any cached copy of the old page.
+          [ -f data/events.json ] && cp data/events.json events-na.json || true
+
+          echo "--- snapshot ---"
+          ls -la data/
+
+      - name: Commit snapshots
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add events-na.json
-          git diff --quiet --cached || git commit -m "chore: refresh NA events [skip ci]"
+          git add data events-na.json
+          git diff --quiet --cached || git commit -m "chore: refresh game data snapshots [skip ci]"
           git push

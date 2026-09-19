@@ -356,13 +356,15 @@
 </div>
 
 <script>
-const PROXY = 'https://corsproxy.io/?url=';
-
-// Try multiple likely endpoints in order
-const ENDPOINTS = [
-  'https://metaforge.app/api/arc-raiders/weekly-trials',
-  'https://metaforge.app/api/arc-raiders/trials',
-  'https://metaforge.app/api/arc-raiders/quests',
+// Prefer the same-origin snapshot written by the Refresh Game Data workflow —
+// no CORS, and metaforge asks that we not call their API from every browser.
+// `quests` is the only real endpoint for this data; weekly-trials and trials
+// were guesses and have never existed.
+const CACHE_URL = './data/quests.json';
+const SOURCE    = 'https://metaforge.app/api/arc-raiders/quests';
+const PROXIES = [
+  u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
 ];
 
 const RARITY_ORDER = ['legendary','epic','rare','uncommon','common'];
@@ -400,32 +402,52 @@ function startTimer(resetDate) {
 }
 
 // ── FETCH ────────────────────────────────────────────────────────────────────
-async function loadData() {
-  let lastError = '';
-  const debugAll = {};
+async function fetchWithFallback(cacheUrl, sourceUrl, proxies, log) {
+  try {
+    const res = await fetch(cacheUrl, { cache: 'no-store' });
+    if (res.ok) { log.cache = 'ok'; return await res.json(); }
+    log.cache = `HTTP ${res.status}`;
+  } catch (e) { log.cache = e.message; }
 
-  for (const endpoint of ENDPOINTS) {
+  for (const proxyFn of proxies) {
+    const url = proxyFn(sourceUrl);
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 8000);
     try {
-      const res  = await fetch(PROXY + encodeURIComponent(endpoint));
-      const json = await res.json();
-      debugAll[endpoint] = json;
-
-      const raw = json.data ?? json;
-      const items = Array.isArray(raw) ? raw : (Array.isArray(raw.trials) ? raw.trials : null);
-
-      if (items && items.length) {
-        document.getElementById('debugPre').textContent = JSON.stringify(debugAll, null, 2);
-        document.getElementById('debugPanel').style.display = '';
-        renderTrials(items);
-        return;
+      const res = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+        signal: ctl.signal,
+      });
+      clearTimeout(timer);
+      if (!res.ok) { log[url] = `HTTP ${res.status}`; continue; }
+      const text = (await res.text()).trim();
+      if (!text.startsWith('{') && !text.startsWith('[')) {
+        log[url] = 'non-JSON response';
+        continue;
       }
-    } catch (e) {
-      lastError = e.message;
-      debugAll[endpoint] = { error: lastError };
+      log[url] = 'ok';
+      return JSON.parse(text);
+    } catch (e) { clearTimeout(timer); log[url] = e.message; }
+  }
+  return null;
+}
+
+async function loadData() {
+  const log = {};
+  const json = await fetchWithFallback(CACHE_URL, SOURCE, PROXIES, log);
+
+  if (json) {
+    const raw = json.data ?? json;
+    const items = Array.isArray(raw) ? raw : (Array.isArray(raw.trials) ? raw.trials : null);
+    if (items && items.length) {
+      renderTrials(items);
+      return;
     }
+    log.parse = 'response contained no trial entries';
   }
 
-  document.getElementById('debugPre').textContent = JSON.stringify(debugAll, null, 2);
+  document.getElementById('debugPre').textContent = JSON.stringify(log, null, 2);
   document.getElementById('debugPanel').style.display = '';
   setStatus('Could not load trials data — see Raw API Response below.');
 }

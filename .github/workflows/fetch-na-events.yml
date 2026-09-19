@@ -23,27 +23,87 @@ jobs:
       - name: Snapshot metaforge endpoints
         run: |
           mkdir -p data
-          fetch() {
-            name="$1"; url="$2"
-            if curl -sf --max-time 30 -H "Accept: application/json" "$url" -o "/tmp/$name.raw"; then
-              if python3 -c "import json,sys; json.load(open('/tmp/$name.raw'))" 2>/dev/null; then
-                mv "/tmp/$name.raw" "data/$name.json"
-                echo "OK   $name ($(wc -c < "data/$name.json") bytes)"
-              else
-                echo "SKIP $name (not valid JSON)"
-              fi
-            else
-              echo "SKIP $name (request failed)"
-            fi
-            sleep 2
-          }
+          python3 - <<'PY'
+          import json, time, urllib.request, urllib.error
 
-          B="https://metaforge.app/api/arc-raiders"
-          fetch events  "$B/events-schedule"
-          fetch arcs    "$B/arcs?loot=true"
-          fetch quests  "$B/quests"
-          fetch items   "$B/items"
-          fetch traders "$B/traders"
+          BASE = 'https://metaforge.app/api/arc-raiders'
+          PAGE_LIMIT = 500      # server caps this; we just follow hasNextPage
+          MAX_PAGES = 25        # hard stop so a broken cursor can't loop
+
+          def get(url):
+              req = urllib.request.Request(url, headers={
+                  'Accept': 'application/json',
+                  'User-Agent': 'github.com/kennetheschmidt/Arc (static site cache)',
+              })
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return json.loads(r.read().decode())
+
+          def snapshot(name, path, params=''):
+              """Follow pagination and merge every page's data into one document."""
+              merged = None
+              page = 1
+              while page <= MAX_PAGES:
+                  qs = f'limit={PAGE_LIMIT}&page={page}'
+                  if params:
+                      qs = f'{params}&{qs}'
+                  url = f'{BASE}{path}?{qs}'
+                  try:
+                      doc = get(url)
+                  except Exception as e:
+                      if merged is None:
+                          print(f'SKIP {name}: {e}')
+                          return
+                      print(f'WARN {name}: page {page} failed ({e}); keeping {page-1} page(s)')
+                      break
+
+                  data = doc.get('data') if isinstance(doc, dict) else doc
+
+                  # Non-list payloads (e.g. traders is keyed by name) never paginate.
+                  if not isinstance(data, list):
+                      merged = doc
+                      break
+
+                  if merged is None:
+                      merged = doc
+                  elif isinstance(merged, dict):
+                      merged['data'].extend(data)
+                  else:
+                      merged.extend(data)
+
+                  pg = doc.get('pagination') if isinstance(doc, dict) else None
+                  if not pg or not pg.get('hasNextPage'):
+                      break
+                  page += 1
+                  time.sleep(1)
+
+              if merged is None:
+                  print(f'SKIP {name}: no data')
+                  return
+
+              got = merged.get('data') if isinstance(merged, dict) else merged
+              if isinstance(got, list) and isinstance(merged, dict):
+                  pg = merged.get('pagination')
+                  if pg:
+                      total = pg.get('total')
+                      merged['pagination'] = {
+                          'page': 1, 'limit': len(got), 'total': total,
+                          'totalPages': 1, 'hasNextPage': False, 'hasPrevPage': False,
+                      }
+                      if total is not None and len(got) != total:
+                          print(f'WARN {name}: captured {len(got)} of {total}')
+                  print(f'OK   {name}: {len(got)} records')
+              else:
+                  print(f'OK   {name}: non-list payload')
+
+              with open(f'data/{name}.json', 'w') as f:
+                  json.dump(merged, f)
+
+          snapshot('events',  '/events-schedule')
+          snapshot('arcs',    '/arcs', 'loot=true')
+          snapshot('quests',  '/quests')
+          snapshot('items',   '/items')
+          snapshot('traders', '/traders')
+          PY
 
           # Keep the legacy path alive for any cached copy of the old page.
           [ -f data/events.json ] && cp data/events.json events-na.json || true

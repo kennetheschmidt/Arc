@@ -272,6 +272,7 @@
 
 <script>
   // ── FETCH ────────────────────────────────────────────────────────────────
+  const SNAPSHOT_URL = './data/items.json';
   const PROXIES = [
     u => u,
     u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
@@ -339,6 +340,21 @@
   }
 
   async function fetchAllItems() {
+    // Prefer the same-origin snapshot written by the Refresh Game Data
+    // workflow: one request for the full catalogue instead of crawling the
+    // API page by page from every visitor's browser.
+    try {
+      const res = await fetch(SNAPSHOT_URL, { cache: 'no-store' });
+      if (res.ok) {
+        const items = extractItems(await res.json());
+        if (items && items.length) {
+          const all = dedup(items);
+          saveCache(all);
+          return all;
+        }
+      }
+    } catch (_) {}
+
     for (const baseUrl of API_ENDPOINTS) {
       const first = await tryFetch(`${baseUrl}?limit=500&page=1`);
       const firstItems = extractItems(first);

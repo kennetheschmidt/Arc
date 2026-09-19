@@ -3,10 +3,22 @@ name: Refresh Game Data
 # metaforge asks that consumers cache on their end rather than calling the API
 # directly from every visitor's browser, so we snapshot each endpoint here and
 # serve the results same-origin from gh-pages.
+#
+# Events rotate hourly, so they refresh on a schedule. Items, arcs, quests and
+# traders are reference data that only move on a game patch - refresh those by
+# running this manually with scope "all".
 on:
   schedule:
     - cron: '0 */4 * * *'
   workflow_dispatch:
+    inputs:
+      scope:
+        description: 'What to refresh'
+        type: choice
+        options:
+          - all
+          - events
+        default: all
 
 permissions:
   contents: write
@@ -21,14 +33,19 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Snapshot metaforge endpoints
+        # Scheduled runs supply no input, so they fall through to events only.
+        env:
+          SCOPE: ${{ inputs.scope || 'events' }}
         run: |
           mkdir -p data
           python3 - <<'PY'
-          import json, time, urllib.request, urllib.error
+          import json, os, time, urllib.request
 
           BASE = 'https://metaforge.app/api/arc-raiders'
           PAGE_LIMIT = 500      # server caps this; we just follow hasNextPage
           MAX_PAGES = 25        # hard stop so a broken cursor can't loop
+
+          scope = os.environ.get('SCOPE', 'events')
 
           def get(url):
               req = urllib.request.Request(url, headers={
@@ -98,11 +115,13 @@ jobs:
               with open(f'data/{name}.json', 'w') as f:
                   json.dump(merged, f)
 
-          snapshot('events',  '/events-schedule')
-          snapshot('arcs',    '/arcs', 'loot=true')
-          snapshot('quests',  '/quests')
-          snapshot('items',   '/items')
-          snapshot('traders', '/traders')
+          print(f'scope: {scope}')
+          snapshot('events', '/events-schedule')
+          if scope == 'all':
+              snapshot('arcs',    '/arcs', 'loot=true')
+              snapshot('quests',  '/quests')
+              snapshot('items',   '/items')
+              snapshot('traders', '/traders')
           PY
 
           # Keep the legacy path alive for any cached copy of the old page.
@@ -116,5 +135,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data events-na.json
-          git diff --quiet --cached || git commit -m "chore: refresh game data snapshots [skip ci]"
+          git diff --quiet --cached || git commit -m "chore: refresh game data (${SCOPE}) [skip ci]"
           git push
+        env:
+          SCOPE: ${{ inputs.scope || 'events' }}

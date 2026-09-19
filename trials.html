@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Weekly Trials – Arc Raiders</title>
+  <title>Quests – Arc Raiders</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -312,6 +312,66 @@
     .debug-body { display: none; padding: 16px; border-top: 1px solid var(--border); }
     .debug-body.open { display: block; }
     .debug-body pre { font-size: 0.72rem; color: var(--muted); white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; }
+
+    /* ── QUEST CONTROLS ── */
+    .quest-controls {
+      max-width: 900px;
+      margin: 16px auto 0;
+      width: 100%;
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    #questSearch {
+      width: 100%;
+      max-width: 420px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #questSearch:focus { border-color: var(--accent); }
+    #questSearch::placeholder { color: var(--muted); }
+
+    .trader-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+    .trader-btn {
+      padding: 5px 13px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .trader-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .trader-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+
+    .trader-group-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin: 20px 0 10px;
+    }
+    .trader-group-label:first-child { margin-top: 0; }
+
+    .quest-qty { color: var(--muted); font-size: 0.75rem; }
+    .quest-image {
+      width: 34px; height: 34px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .quest-title-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
   </style>
 </head>
 <body>
@@ -322,27 +382,23 @@
   <a href="arcs.html">ARC Units</a>
   <a href="loot.html">Loot</a>
   <a href="traders.html">Traders</a>
-  <a href="trials.html" class="active">Trials</a>
+  <a href="trials.html" class="active">Quests</a>
 </nav>
 
 <div class="page-header">
-  <h1>Weekly Trials</h1>
-  <p>Active objectives and rewards for this week's trials</p>
+  <h1>Quests</h1>
+  <p>Objectives, requirements and rewards for every quest, by trader</p>
 </div>
 
-<div class="reset-banner">
-  <div class="reset-pill">
-    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-    </svg>
-    Resets in <span class="timer" id="resetTimer">–</span>
-  </div>
+<div class="quest-controls">
+  <input type="text" id="questSearch" placeholder="Search quests, objectives or items…" />
+  <div class="trader-filters" id="traderFilters"></div>
 </div>
 
 <div class="content">
   <div class="status" id="status">
     <div class="spinner"></div>
-    Loading trials…
+    Loading quests…
   </div>
   <div class="trials-list" id="trialsList" style="display:none"></div>
   <div class="debug-panel" id="debugPanel" style="display:none">
@@ -368,45 +424,6 @@ const PROXIES = [
 ];
 
 const RARITY_ORDER = ['legendary','epic','rare','uncommon','common'];
-
-// ── RESET TIMER ──────────────────────────────────────────────────────────────
-// Weekly reset: Tuesday 04:00 UTC (midnight ET). Derived from metaforge's
-// own countdown reading 2d 9h at 2026-09-19 18:02 UTC, which places the reset
-// in [03:02, 04:02) UTC given that countdowns floor to the hour.
-const RESET_DAY = 2;   // Tuesday
-const RESET_HOUR = 4;  // 04:00 UTC
-
-function getNextReset() {
-  const now = new Date();
-  const d = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), RESET_HOUR, 0, 0
-  ));
-  let daysUntil = (RESET_DAY - d.getUTCDay() + 7) % 7;
-  // Today is reset day but the hour has passed - go to next week.
-  if (daysUntil === 0 && d <= now) daysUntil = 7;
-  d.setUTCDate(d.getUTCDate() + daysUntil);
-  return d;
-}
-
-function formatCountdown(ms) {
-  if (ms <= 0) return '0s';
-  const s = Math.floor(ms / 1000);
-  const d = Math.floor(s / 86400);
-  const h = Math.floor((s % 86400) / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (d > 0) return `${d}d ${h}h ${m}m`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
-}
-
-function startTimer(resetDate) {
-  function tick() {
-    const ms = resetDate - Date.now();
-    document.getElementById('resetTimer').textContent = formatCountdown(ms);
-  }
-  tick();
-  setInterval(tick, 10000);
-}
 
 // ── FETCH ────────────────────────────────────────────────────────────────────
 async function fetchWithFallback(cacheUrl, sourceUrl, proxies, log) {
@@ -446,119 +463,90 @@ async function loadData() {
 
   if (json) {
     const raw = json.data ?? json;
-    const items = Array.isArray(raw) ? raw : (Array.isArray(raw.trials) ? raw.trials : null);
+    const items = Array.isArray(raw) ? raw : null;
     if (items && items.length) {
-      renderTrials(items);
+      allQuests = items;
+      buildTraderFilter();
+      render();
       return;
     }
-    log.parse = 'response contained no trial entries';
+    log.parse = 'response contained no quest entries';
   }
 
   document.getElementById('debugPre').textContent = JSON.stringify(log, null, 2);
   document.getElementById('debugPanel').style.display = '';
-  setStatus('Could not load trials data — see Raw API Response below.');
+  setStatus('Could not load quests — see Raw API Response below.');
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
-function isActive(trial) {
-  // Explicit active flag
-  if (trial.active !== undefined) return !!trial.active;
-  if (trial.is_active !== undefined) return !!trial.is_active;
-  // Date-based: has an end date in the future
-  const end = trial.reset_at || trial.ends_at || trial.expires_at || trial.end_date || null;
-  if (end) return new Date(end) > new Date();
-  // No date info — treat the first item as active (handled by caller)
-  return null;
+let allQuests = [];
+let activeTrader = 'all';
+let searchTerm = '';
+
+function traderOf(q) {
+  return q.trader_name || 'Unassigned';
 }
 
-function buildCard(trial) {
-  const name       = trial.name || trial.title || trial.id || 'Unknown Trial';
-  const desc       = trial.description || trial.desc || '';
-  const type       = (trial.type || trial.category || 'weekly').toLowerCase();
-  const objectives = normaliseObjectives(trial.objectives || trial.tasks || trial.requirements || []);
-  const rewards    = normaliseRewards(trial.rewards || trial.reward_items || trial.loot || []);
-  const progress   = trial.progress ?? trial.completion ?? null;
-
-  const card = document.createElement('div');
-  card.className = 'trial-card';
-  card.innerHTML = `
-    <div class="trial-card-header">
-      <div>
-        <div class="trial-name">${esc(name)}</div>
-        ${desc ? `<div class="trial-desc">${esc(desc)}</div>` : ''}
-      </div>
-      <div class="trial-badge ${type}">${esc(type)}</div>
-    </div>
-    <div class="trial-body">
-      <div class="trial-section">
-        <div class="section-label">Objectives</div>
-        ${objectives.length
-          ? objectives.map(o => `<div class="objective-item"><div class="obj-bullet"></div><span>${esc(o)}</span></div>`).join('')
-          : `<div style="font-size:0.8rem;color:var(--muted)">No objectives listed.</div>`
-        }
-      </div>
-      <div class="trial-section">
-        <div class="section-label">Rewards</div>
-        ${rewards.length
-          ? rewards.map(r => `
-              <div class="reward-item">
-                ${r.icon ? `<img class="reward-icon" src="${esc(r.icon)}" alt="" onerror="this.style.display='none'">` : ''}
-                <span>${esc(r.name)}</span>
-                ${r.rarity ? `<span class="reward-rarity ${esc(r.rarity)}">${esc(r.rarity)}</span>` : ''}
-              </div>`).join('')
-          : `<div style="font-size:0.8rem;color:var(--muted)">No rewards listed.</div>`
-        }
-      </div>
-    </div>
-    ${progress !== null ? `
-      <div class="trial-progress">
-        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${Math.min(100, progress)}%"></div></div>
-        <div class="progress-label">${Math.round(progress)}% complete</div>
-      </div>` : ''}
-  `;
-  return card;
+function matchesSearch(q) {
+  if (!searchTerm) return true;
+  const hay = [
+    q.name,
+    ...(Array.isArray(q.objectives) ? q.objectives : []),
+    ...mapItems(q.granted_items).map(i => i.name),
+    ...mapItems(q.required_items).map(i => i.name),
+  ].join(' ').toLowerCase();
+  return hay.includes(searchTerm);
 }
 
-function renderTrials(trials) {
+function buildTraderFilter() {
+  const bar = document.getElementById('traderFilters');
+  const traders = [...new Set(allQuests.map(traderOf))].sort();
+  bar.innerHTML = '';
+  [['all', `All (${allQuests.length})`], ...traders.map(t =>
+    [t, `${t} (${allQuests.filter(q => traderOf(q) === t).length})`]
+  )].forEach(([key, label]) => {
+    const btn = document.createElement('button');
+    btn.className = 'trader-btn' + (key === activeTrader ? ' active' : '');
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      activeTrader = key;
+      bar.querySelectorAll('.trader-btn').forEach(b => b.classList.toggle('active', b === btn));
+      render();
+    });
+    bar.appendChild(btn);
+  });
+}
+
+function render() {
   const list = document.getElementById('trialsList');
   document.getElementById('status').style.display = 'none';
   list.style.display = '';
   list.innerHTML = '';
 
-  // Partition into active vs past
-  let active = [], past = [];
-  const flags = trials.map(t => isActive(t));
-  const anyExplicit = flags.some(f => f !== null);
+  const shown = allQuests.filter(q =>
+    (activeTrader === 'all' || traderOf(q) === activeTrader) && matchesSearch(q)
+  );
 
-  if (anyExplicit) {
-    trials.forEach((t, i) => (flags[i] !== false ? active : past).push(t));
-  } else {
-    // No date/flag info — first item is current, rest are past
-    active = trials.slice(0, 1);
-    past   = trials.slice(1);
+  if (!shown.length) {
+    list.innerHTML = '<div class="status">No quests match that search.</div>';
+    return;
   }
 
-  // Render active trials
-  active.forEach(t => list.appendChild(buildCard(t)));
+  // Group under trader headings so the list stays navigable at 100 entries.
+  const groups = new Map();
+  shown.forEach(q => {
+    const t = traderOf(q);
+    if (!groups.has(t)) groups.set(t, []);
+    groups.get(t).push(q);
+  });
 
-  // Render collapsible past section
-  if (past.length) {
-    const header = document.createElement('div');
-    header.className = 'past-header';
-    header.innerHTML = `<span>Previous Trials (${past.length})</span><i class="chevron">▾</i>`;
-
-    const body = document.createElement('div');
-    body.className = 'past-body';
-    past.forEach(t => body.appendChild(buildCard(t)));
-
-    header.addEventListener('click', () => {
-      header.classList.toggle('open');
-      body.classList.toggle('open');
-    });
-
-    list.appendChild(header);
-    list.appendChild(body);
-  }
+  [...groups.keys()].sort().forEach(trader => {
+    const label = document.createElement('div');
+    label.className = 'trader-group-label';
+    label.textContent = `${trader} — ${groups.get(trader).length} quest${groups.get(trader).length === 1 ? '' : 's'}`;
+    list.appendChild(label);
+    groups.get(trader).forEach(q => list.appendChild(buildCard(q)));
+  });
 }
 
 function normaliseObjectives(raw) {
@@ -569,19 +557,67 @@ function normaliseObjectives(raw) {
   });
 }
 
-function normaliseRewards(raw) {
+function mapItems(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.map(r => {
-    if (typeof r === 'string') return { name: r };
+    const it = r.item || {};
     return {
-      name:   r.name || r.item_name || r.id || 'Unknown',
-      rarity: (r.rarity || r.tier || '').toLowerCase(),
-      icon:   r.icon || r.image || r.img || null,
+      name:   it.name || r.item_id || 'Unknown',
+      icon:   it.icon || '',
+      rarity: (it.rarity || '').toLowerCase(),
+      qty:    r.quantity || 1,
     };
   });
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
+function itemRow(i) {
+  return `
+    <div class="reward-item">
+      ${i.icon ? `<img class="reward-icon" src="${esc(i.icon)}" alt="" onerror="this.style.display='none'">` : ''}
+      <span>${esc(i.name)}</span>
+      ${i.qty > 1 ? `<span class="quest-qty">x${i.qty}</span>` : ''}
+      ${i.rarity ? `<span class="reward-rarity ${esc(i.rarity)}">${esc(i.rarity)}</span>` : ''}
+    </div>`;
+}
+
+function buildCard(q) {
+  const objectives = normaliseObjectives(q.objectives);
+  const rewards    = mapItems(q.granted_items);
+  const required   = mapItems(q.required_items);
+
+  const card = document.createElement('div');
+  card.className = 'trial-card';
+  card.innerHTML = `
+    <div class="trial-card-header">
+      <div class="quest-title-row">
+        ${q.image ? `<img class="quest-image" src="${esc(q.image)}" alt="" onerror="this.style.display='none'">` : ''}
+        <div class="trial-name">${esc(q.name || q.id || 'Unknown Quest')}</div>
+      </div>
+      ${q.guide_url
+        ? `<a class="trial-badge" href="https://metaforge.app${esc(q.guide_url)}" target="_blank" rel="noopener">Guide</a>`
+        : ''}
+    </div>
+    <div class="trial-body">
+      <div class="trial-section">
+        <div class="section-label">Objectives</div>
+        ${objectives.length
+          ? objectives.map(o => `<div class="objective-item"><div class="obj-bullet"></div><span>${esc(o)}</span></div>`).join('')
+          : `<div style="font-size:0.8rem;color:var(--muted)">No objectives listed.</div>`}
+      </div>
+      <div class="trial-section">
+        <div class="section-label">${required.length ? 'Required Items' : 'Rewards'}</div>
+        ${required.length ? required.map(itemRow).join('') : ''}
+        ${required.length && rewards.length
+          ? `<div class="section-label" style="margin-top:12px">Rewards</div>` : ''}
+        ${rewards.length ? rewards.map(itemRow).join('') : ''}
+        ${!required.length && !rewards.length
+          ? `<div style="font-size:0.8rem;color:var(--muted)">Nothing listed.</div>` : ''}
+      </div>
+    </div>
+  `;
+  return card;
+}
+
 function setStatus(msg) {
   const el = document.getElementById('status');
   el.innerHTML = `<div style="color:var(--red)">${msg}</div>`;
@@ -599,7 +635,13 @@ function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-startTimer(getNextReset());
+let searchTimer = null;
+document.getElementById('questSearch').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  const v = e.target.value.trim().toLowerCase();
+  searchTimer = setTimeout(() => { searchTerm = v; render(); }, 150);
+});
+
 loadData();
 </script>
 </body>

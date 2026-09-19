@@ -1,0 +1,56 @@
+=== PARAMETER PROBE ===
+baseline.json                46e4768b57ae6b69  SAME as baseline
+r_NA.json                    46e4768b57ae6b69  SAME as baseline
+region_NA.json               46e4768b57ae6b69  SAME as baseline
+serverRegion_NA.json         46e4768b57ae6b69  SAME as baseline
+server_NA.json               46e4768b57ae6b69  SAME as baseline
+server_region_NA.json        46e4768b57ae6b69  SAME as baseline
+zone_NA.json                 46e4768b57ae6b69  SAME as baseline
+
+=== NA SIGNATURE SEARCH ===
+events in feed: 140
+-- NA active block (NA has this at 2026-09-19 18:00 UTC) --
+  EXACT MATCH at 2026-09-19 11:00 UTC  => offset -7h
+  EXACT MATCH at 2026-09-20 13:00 UTC  => offset +19h
+-- NA next block (NA has this at 2026-09-19 19:00 UTC) --
+  EXACT MATCH at 2026-09-19 12:00 UTC  => offset -7h
+  partial (3/4) at 2026-09-20 20:00 UTC (+25h): [('Bird City', 'Buried City'), ('Electromagnetic Storm', 'Spaceport'), ('Harvester', 'Dam'), ('Night Raid', 'Stella Montis')]
+  partial (3/4) at 2026-09-20 14:00 UTC (+19h): [('Bird City', 'Buried City'), ('Electromagnetic Storm', 'Spaceport'), ('Harvester', 'Dam'), ('Night Raid', 'Stella Montis')]
+  partial (3/4) at 2026-09-20 10:00 UTC (+15h): [('Electromagnetic Storm', 'Blue Gate'), ('Harvester', 'Dam'), ('Night Raid', 'Stella Montis'), ('Uncovered Caches', 'Buried City')]
+
+=== EU FEED BY SLOT ===
+2026-09-19 11:00 UTC  Close Scrutiny [Buried City], Matriarch [Dam], Night Raid [Spaceport], Uncovered Caches [Blue Gate]
+2026-09-19 12:00 UTC  Bird City [Buried City], Electromagnetic Storm [Blue Gate], Harvester [Dam], Night Raid [Stella Montis]
+2026-09-19 13:00 UTC  Beachcombing [Riven Tides], Hurricane [Blue Gate], Matriarch [Spaceport], Night Raid [Buried City], Prospecting Probes [Buried City], Uncovered Caches [Dam]
+2026-09-19 14:00 UTC  Close Scrutiny [Dam], Harvester [Spaceport], Night Raid [Stella Montis], Prospecting Probes [Riven Tides]
+2026-09-19 15:00 UTC  Bird City [Buried City], Hurricane [Buried City], Matriarch [Dam], Night Raid [Blue Gate], Uncovered Caches [Spaceport]
+2026-09-19 16:00 UTC  Beachcombing [Riven Tides], Harvester [Blue Gate], Locked Gate [Blue Gate], Night Raid [Stella Montis]
+2026-09-19 17:00 UTC  Electromagnetic Storm [Dam], Matriarch [Blue Gate], Night Raid [Spaceport], Prospecting Probes [Riven Tides]
+2026-09-19 18:00 UTC  Bird City [Buried City], Harvester [Dam], Hidden Bunker [Spaceport], Night Raid [Stella Montis]
+2026-09-19 19:00 UTC  Beachcombing [Riven Tides], Hurricane [Buried City], Matriarch [Spaceport], Night Raid [Blue Gate], Uncovered Caches [Dam]
+2026-09-19 20:00 UTC  Close Scrutiny [Dam], Harvester [Spaceport], Night Raid [Stella Montis], Prospecting Probes [Riven Tides]
+2026-09-19 21:00 UTC  Bird City [Buried City], Electromagnetic Storm [Spaceport], Matriarch [Dam], Night Raid [Blue Gate]
+2026-09-19 22:00 UTC  Harvester [Spaceport], Hurricane [Dam], Night Raid [Stella Montis], Prospecting Probes [Riven Tides]
+2026-09-19 23:00 UTC  Bird City [Buried City], Matriarch [Dam], Night Raid [Blue Gate]
+2026-09-20 00:00 UTC  Beachcombing [Riven Tides], Harvester [Blue Gate], Night Raid [Stella Montis]
+2026-09-20 01:00 UTC  Matriarch [Spaceport], Night Raid [Dam], Uncovered Caches [Riven Tides]
+2026-09-20 02:00 UTC  Bird City [Buried City], Harvester [Dam], Night Raid [Stella Montis]
+2026-09-20 03:00 UTC  Beachcombing [Riven Tides], Matriarch [Blue Gate], Night Raid [Spaceport], Prospecting Probes [Spaceport]
+2026-09-20 04:00 UTC  Harvester [Spaceport], Night Raid [Stella Montis], Prospecting Probes [Riven Tides]
+2026-09-20 05:00 UTC  Bird City [Buried City], Matriarch [Dam], Night Raid [Blue Gate]
+2026-09-20 06:00 UTC  Beachcombing [Riven Tides], Harvester [Dam], Night Raid [Stella Montis]
+2026-09-20 07:00 UTC  Matriarch [Blue Gate], Night Raid [Riven Tides], Prospecting Probes [Buried City]
+2026-09-20 08:00 UTC  Bird City [Buried City], Harvester [Blue Gate], Night Raid [Stella Montis]
+2026-09-20 09:00 UTC  Beachcombing [Riven Tides], Matriarch [Dam], Night Raid [Riven Tides]
+2026-09-20 10:00 UTC  Electromagnetic Storm [Blue Gate], Harvester [Dam], Night Raid [Stella Montis], Uncovered Caches [Buried City]
+2026-09-20 11:00 UTC  Bird City [Buried City], Locked Gate [Blue Gate], Matriarch [Blue Gate], Night Raid [Spaceport], Prospecting Probes [Dam]
+2026-09-20 12:00 UTC  Beachcombing [Riven Tides], Electromagnetic Storm [Spaceport], Harvester [Blue Gate], Launch Tower Loot [Spaceport], Night Raid [Stella Montis]
+2026-09-20 13:00 UTC  Close Scrutiny [Buried City], Matriarch [Dam], Night Raid [Spaceport], Uncovered Caches [Blue Gate]
+2026-09-20 14:00 UTC  Bird City [Buried City], Electromagnetic Storm [Spaceport], Harvester [Dam], Night Raid [Stella Montis]
+2026-09-20 15:00 UTC  Beachcombing [Riven Tides], Close Scrutiny [Blue Gate], Matriarch [Spaceport], Night Raid [Buried City], Prospecting Probes [Buried City], Uncovered Caches [Dam]
+2026-09-20 16:00 UTC  Electromagnetic Storm [Dam], Harvester [Spaceport], Night Raid [Stella Montis], Prospecting Probes [Riven Tides]
+2026-09-20 17:00 UTC  Bird City [Buried City], Close Scrutiny [Buried City], Matriarch [Dam], Night Raid [Blue Gate], Uncovered Caches [Spaceport]
+2026-09-20 18:00 UTC  Beachcombing [Riven Tides], Electromagnetic Storm [Dam], Harvester [Blue Gate], Night Raid [Stella Montis]
+2026-09-20 19:00 UTC  Hurricane [Buried City], Matriarch [Blue Gate], Night Raid [Spaceport], Prospecting Probes [Riven Tides]
+2026-09-20 20:00 UTC  Bird City [Buried City], Electromagnetic Storm [Spaceport], Harvester [Dam], Night Raid [Stella Montis]
+2026-09-20 21:00 UTC  Beachcombing [Riven Tides], Hidden Bunker [Spaceport], Matriarch [Spaceport], Night Raid [Blue Gate], Uncovered Caches [Dam]

@@ -370,13 +370,20 @@ const PROXIES = [
 const RARITY_ORDER = ['legendary','epic','rare','uncommon','common'];
 
 // ── RESET TIMER ──────────────────────────────────────────────────────────────
-// Weekly reset: Thursday 17:00 UTC (Arc Raiders weekly cadence)
+// Weekly reset: Tuesday 04:00 UTC (midnight ET). Derived from metaforge's
+// own countdown reading 2d 9h at 2026-09-19 18:02 UTC, which places the reset
+// in [03:02, 04:02) UTC given that countdowns floor to the hour.
+const RESET_DAY = 2;   // Tuesday
+const RESET_HOUR = 4;  // 04:00 UTC
+
 function getNextReset() {
   const now = new Date();
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 17, 0, 0));
-  // Find next Thursday (day 4)
-  const dow = d.getUTCDay();
-  const daysUntil = (4 - dow + 7) % 7 || 7;
+  const d = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), RESET_HOUR, 0, 0
+  ));
+  let daysUntil = (RESET_DAY - d.getUTCDay() + 7) % 7;
+  // Today is reset day but the hour has passed - go to next week.
+  if (daysUntil === 0 && d <= now) daysUntil = 7;
   d.setUTCDate(d.getUTCDate() + daysUntil);
   return d;
 }

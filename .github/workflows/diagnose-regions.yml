@@ -75,27 +75,38 @@ jobs:
               ('Electromagnetic Storm', 'Blue Gate'),
           }
 
-          def iso(ms):
-              return datetime.datetime.utcfromtimestamp(ms / 1000).strftime('%Y-%m-%d %H:%M UTC')
+          UTC = datetime.timezone.utc
 
-          def report(label, sig):
+          def iso(ms):
+              return datetime.datetime.fromtimestamp(ms / 1000, UTC).strftime('%Y-%m-%d %H:%M UTC')
+
+          def anchor(y, mo, d, h):
+              return int(datetime.datetime(y, mo, d, h, tzinfo=UTC).timestamp() * 1000)
+
+          # The user is in PDT (UTC-7); the observed 11:00 local block is 18:00 UTC.
+          na_active_at = anchor(2026, 9, 19, 18)
+          na_next_at = anchor(2026, 9, 19, 19)
+
+          def report(label, sig, observed_at):
+              out.append(f'-- {label} (NA has this at {iso(observed_at)}) --')
               exact, partial = [], []
               for st, evs in slots.items():
                   if evs == sig:
                       exact.append(st)
                   elif len(evs & sig) >= 3:
                       partial.append((len(evs & sig), st, evs))
-              out.append(f'-- {label} --')
               if exact:
                   for st in sorted(exact):
-                      out.append(f'  EXACT MATCH at {iso(st)}')
+                      delta = (st - observed_at) / 3600000
+                      out.append(f'  EXACT MATCH at {iso(st)}  => offset {delta:+.0f}h')
               else:
                   out.append('  no exact match')
               for n, st, evs in sorted(partial, reverse=True)[:3]:
-                  out.append(f'  partial ({n}/4) at {iso(st)}: {sorted(evs)}')
+                  delta = (st - observed_at) / 3600000
+                  out.append(f'  partial ({n}/4) at {iso(st)} ({delta:+.0f}h): {sorted(evs)}')
 
-          report('NA active block', na_active)
-          report('NA next block', na_next)
+          report('NA active block', na_active, na_active_at)
+          report('NA next block', na_next, na_next_at)
 
           # --- Part 3: full schedule, for manual inspection ---
           out.append('')

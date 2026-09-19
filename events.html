@@ -356,21 +356,31 @@
   let tickTimer = null;
 
   // ── FETCH ─────────────────────────────────────────────────────────────────
+  // The page shows the next 4 hours, so a snapshot has to reach at least that
+  // far ahead to stand on its own. The daily refresh normally lands ~34h of
+  // coverage, so this only bites if a run was delayed or skipped.
+  const HORIZON_MS = 4 * 60 * 60 * 1000;
+
   async function loadEvents() {
     let raw = null;
+    let thinCache = null;   // usable but short on coverage - last resort only
 
-    // 1. Try same-origin cached file (no CORS, and metaforge asks that we cache)
+    // 1. Same-origin snapshot: no CORS, and metaforge asks that we cache.
     try {
       const res = await fetch(CACHE_URL, { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
         const events = normalizeEvents(Array.isArray(json) ? json : json.data);
         const now = Date.now();
-        if (events && events.some(e => e.endTime > now)) raw = events;
+        if (events && events.some(e => e.endTime > now)) {
+          thinCache = events;
+          // Trust it outright only while it still spans the display window.
+          if (events.some(e => e.startTime > now + HORIZON_MS)) raw = events;
+        }
       }
     } catch (_) {}
 
-    // 2. Fall back to CORS proxy if cache missing or stale
+    // 2. Snapshot missing or running out - go to the live API via proxy.
     if (!raw) {
       for (const proxyFn of PROXIES) {
         const ctl = new AbortController();
@@ -392,6 +402,9 @@
         } catch (_) { clearTimeout(timer); }
       }
     }
+
+    // 3. Proxies failed too - a thin snapshot still beats showing nothing.
+    if (!raw) raw = thinCache;
 
     try {
       if (!raw || !raw.length) throw new Error('No data from any source');

@@ -5,12 +5,12 @@ name: Refresh Game Data
 # serve the results same-origin from gh-pages.
 #
 # Cadences differ by how often the data actually moves:
-#   events  - rotate hourly, so every 4 hours
+#   events  - feed spans ~34h ahead, so a daily pull keeps ~10h of slack
 #   trials  - weekly reset is Tuesday 04:00 UTC, so just after that
 #   all     - items/arcs/traders only move on a game patch, so on demand
 on:
   schedule:
-    - cron: '0 */4 * * *'    # events
+    - cron: '0 12 * * *'     # events, early morning US
     - cron: '15 4 * * 2'     # trials, just after the Tuesday reset
   workflow_dispatch:
     inputs:

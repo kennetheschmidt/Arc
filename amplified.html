@@ -247,6 +247,44 @@
     }
     .step .meta-row { margin-top: 0; padding-top: 0; }
     .step.unknown { color: var(--muted); border-style: dashed; }
+    .step.verified { border-color: rgba(74,222,128,0.35); }
+    .step.verified .label { color: var(--green); }
+    .step .label em { font-style: normal; color: var(--muted); font-weight: 600; }
+    .task-list { margin: 0; padding-left: 16px; }
+    .task-list li { margin-bottom: 3px; }
+    .task-list li:last-child { margin-bottom: 0; }
+    .one-round {
+      display: inline-block;
+      font-size: 0.62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: var(--text);
+      color: var(--bg);
+      padding: 1px 7px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+    .unver {
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-left: 6px;
+    }
+    .legend {
+      font-size: 0.74rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .legend .dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+      margin-right: 5px; vertical-align: middle;
+    }
+    .legend .dot.ok { background: var(--green); }
+    .legend .dot.no { background: var(--muted); }
     .flag {
       font-size: 0.68rem;
       color: var(--muted);
@@ -330,10 +368,14 @@
         <h2>Research Tasks</h2><span class="section-count" id="res-count"></span>
       </div>
       <p class="section-note">
-        Each project needs a field challenge, then a research cost, then materials to apply
-        the perk to a weapon. Filter by weapon to see what a given gun needs.
-        <br><span style="opacity:.75">Objectives, perks and costs are community-sourced —
-        metaforge publishes only each project's name and in-game description.</span>
+        Each project runs in two steps: complete the research tasks in the field, then pay
+        the research cost. Filter by weapon to see what a given gun needs.
+      </p>
+      <p class="legend">
+        <span class="dot ok"></span><strong>Research tasks</strong> are transcribed from the
+        game's own screens.<br>
+        <span class="dot no"></span><strong>Perk, applies-to and costs</strong> are community
+        notes and unverified — the in-game Step 1 screens don't show them.
       </p>
       <div class="filters" id="res-filters"></div>
       <div class="grid" id="res-grid"></div>
@@ -372,118 +414,133 @@
     u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
   ];
 
-  // Research project details, keyed by metaforge item id. metaforge publishes
-  // only each task's name, icon and in-game description, so the objectives,
-  // perks, compatible weapons and costs below come from community research
-  // rather than the API. Entries with no matching id (no `id` key) still render.
+  // Research project details, keyed by metaforge item id.
+  //
+  // `tasks` and `oneRound` are transcribed from the game's own Step 1/2 screens
+  // and are authoritative. `perk`, `weapons`, `research` and `apply` come from
+  // community notes and are NOT verified - the in-game screens do not show
+  // them. A community list checked against these screenshots had 10 of 15
+  // objectives wrong, so treat the unverified fields with suspicion until
+  // someone confirms them from Step 2.
   const RESEARCH_NOTES = {
     'beam-resonance-tech': {
-      perk: 'Ramping Damage',
-      weapons: ['Equalizer'],
-      challenge: 'Destroy 5 Turbines on the Aphelion',
-      research: '5,000 Research Points, 2× Queen Reactors',
-      apply: '3× Queen Reactors',
+      oneRound: true,
+      tasks: ['Deal 1,500 damage to Vaporizers with an Equalizer in one round'],
+      perk: 'Ramping Damage', weapons: ['Equalizer'],
+      research: '5,000 Research Points, 2\u00d7 Queen Reactors',
+      apply: '3\u00d7 Queen Reactors',
+    },
+    'burst-assembly-recovery': {
+      tasks: ['Destroy 3 Shredders with a Raider Tool'],
+      perk: 'Burst Fire Conversion', weapons: ['Burletta'],
+      research: '5,000 Research Points, High-tier tech components',
+      apply: 'Variable rare topside materials',
     },
     'compact-combustion-charges': {
-      perk: 'Incendiary Grenades',
-      weapons: ['Hullcracker', 'Rascal'],
-      challenge: 'Inflict 1,500 fire/burn elemental damage to heavy ARC variants',
-      research: '5,000 Research Points, 3× Fossilized Lightning',
+      tasks: ['Deal 3,000 damage with Blaze Grenades'],
+      perk: 'Incendiary Grenades', weapons: ['Hullcracker', 'Rascal'],
+      research: '5,000 Research Points, 3\u00d7 Fossilized Lightning',
       apply: 'Variable rare topside materials',
     },
     'embedded-blast-engineering': {
-      perk: 'X-Rounds (Explosive Armor-Crushing)',
-      weapons: ['Kettle', 'Anvil', 'Bettina'],
-      challenge: 'Deal 2,000 damage to ARC armor plating using an automatic rifle',
+      tasks: [
+        'Deal 1,000 Damage to Fireflies using Light Impact Grenades',
+        'Deal 1,000 Damage to Hornets using Light Impact Grenades',
+        'Deal 1,000 Damage to Fireballs using Light Impact Grenades',
+        'Deal 1,000 Damage to Surveyors using Light Impact Grenades',
+      ],
+      perk: 'X-Rounds (Explosive Armor-Crushing)', weapons: ['Kettle', 'Anvil', 'Bettina'],
       research: '5,000 Research Points, High-tier ARC parts',
       apply: 'Variable rare topside materials',
     },
-    'solid-core-casting-tech': {
-      perk: 'Slug Rounds',
-      weapons: ['Il Toro'],
-      challenge: 'Destroy 50 flying ARC units using shotguns',
-      research: '5,000 Research Points, 20× Tick Pods',
-      apply: 'Variable rare topside materials',
-    },
-    'burst-assembly-recovery': {
-      perk: 'Burst Fire Conversion',
-      weapons: ['Burletta'],
-      challenge: 'Deal 1,200 weak point damage to ARC targets in a single raid session',
-      research: '5,000 Research Points, High-tier tech components',
-      apply: 'Variable rare topside materials',
-    },
-    'thermite-tipped-rounds': {
-      perk: 'Incendiary Rounds',
-      weapons: ['Rattler', 'Canto', 'Hairpin', 'Aphelion'],
-      challenge: 'Destroy 30 Fireballs using Explosive Mines',
-      research: '5,000 Research Points, 5× Firefly Burners',
-      apply: 'Variable rare topside materials',
-    },
-    'trigger-reset-systems': {
-      perk: 'Semi-Auto Conversion',
-      weapons: ['Bettina', 'Hairpin'],
-      challenge: 'Land 50 precise weak-point hits without missing more than 3 consecutive shots',
-      research: '5,000 Research Points, High-tier tech components',
-      apply: 'Variable rare topside materials',
-    },
-    'top-mounted-optics-retrofittings': {
-      perk: 'Scoped (Magnified Sights)',
-      weapons: ['Renegade', 'Jupiter'],
-      challenge: "Visit Pilgrim's Peak on the Blue Gate map location",
-      research: '5,000 Research Points, 14× Snitch Scanners',
-      apply: 'Variable rare topside materials',
-    },
     'extended-burst-cycles': {
-      perk: 'Increased Burst Count',
-      weapons: ['Aphelion', 'Burletta'],
-      challenge: 'Inflict 2,500 total burst-mode damage to elite or boss-tier ARC units',
+      tasks: ['Deal 10,000 damage with a Burst Burletta or Charged Burst Aphelion'],
+      perk: 'Increased Burst Count', weapons: ['Aphelion', 'Burletta'],
       research: '5,000 Research Points, High-tier tech components',
       apply: 'Variable rare topside materials',
     },
     'high-voltage-exposure': {
-      perk: 'Charged Burst / Anti-Shield',
-      weapons: ['Aphelion', 'Kettle'],
-      challenge: 'Melt down 10 heavy ARC shields using overcharged or energy-typed armaments',
+      tasks: ['Destroy 5 ARC Turbines'],
+      perk: 'Charged Burst / Anti-Shield', weapons: ['Aphelion', 'Kettle'],
       research: '5,000 Research Points, High-tier tech components',
       apply: 'Variable rare topside materials',
     },
     'magazine-geometry-101': {
-      perk: 'Drum Mag (60-Round Capacity)',
-      weapons: ['Rattler'],
-      challenge: 'Fire 1,000 rounds topside and extract successfully without losing your primary weapon',
+      tasks: [
+        'Deal 15,000 damage to a Bastion with a Rattler',
+        'Destroy 1 Bastions with a Rattler',
+      ],
+      perk: 'Drum Mag (60-Round Capacity)', weapons: ['Rattler'],
       research: '5,000 Research Points, High-tier tech components',
       apply: 'Variable rare topside materials',
     },
     'mobile-fire-grip-fittings': {
-      perk: 'Sprint Shooting Accuracy',
-      weapons: ['Hairpin', 'Burletta', 'Canto', 'Rascal'],
-      challenge: 'Accumulate 1,500 damage points against ARC targets while actively moving or sliding',
+      oneRound: true,
+      tasks: [
+        'Visit the Electrical Substation',
+        'Visit the Truck Stop',
+        'Visit the Old Town',
+        'Visit the Almatera Station',
+        'Visit the Researcher Lodgings',
+        'Visit the Deep-Space Telescope',
+        'Visit the Commissary Supermarket',
+      ],
+      perk: 'Sprint Shooting Accuracy', weapons: ['Hairpin', 'Burletta', 'Canto', 'Rascal'],
       research: '5,000 Research Points, High-tier tech components',
       apply: 'Variable rare topside materials',
     },
     'shield-stress-testing': {
-      perk: 'Anti-Shield / Full-Auto Conversion',
-      weapons: ['Kettle', 'Burletta'],
-      challenge: 'Deal 700 damage to enemy Raiders (PvP Player Combat)',
-      research: '5,000 Research Points, 2× Matriarch Reactors',
+      tasks: ['Deal 700 damage to encountered Raiders'],
+      perk: 'Anti-Shield / Full-Auto Conversion', weapons: ['Kettle', 'Burletta'],
+      research: '5,000 Research Points, 2\u00d7 Matriarch Reactors',
+      apply: 'Variable rare topside materials',
+    },
+    'solid-core-casting-tech': {
+      tasks: ['Destroy 50 Flying ARC using shotguns'],
+      perk: 'Slug Rounds', weapons: ['Il Toro'],
+      research: '5,000 Research Points, 20\u00d7 Tick Pods',
       apply: 'Variable rare topside materials',
     },
     'targeted-component-trial': {
+      tasks: ['Destroy 40 thrusters on flying ARC enemies'],
       perk: 'Anti-Weak Point / Action Reload Count',
       weapons: ['Equalizer', 'Osprey', 'Rattler', 'Renegade', 'Il Toro'],
-      challenge: 'Deal 200 damage directly to ARC machine weak points using an Osprey rifle',
+      research: '5,000 Research Points, High-tier tech components',
+      apply: 'Variable rare topside materials',
+    },
+    'thermite-tipped-rounds': {
+      tasks: ['Destroy 30 Fireballs with Explosive Mines'],
+      perk: 'Incendiary Rounds', weapons: ['Rattler', 'Canto', 'Hairpin', 'Aphelion'],
+      research: '5,000 Research Points, 5\u00d7 Firefly Burners',
+      apply: 'Variable rare topside materials',
+    },
+    'top-mounted-optics-retrofittings': {
+      oneRound: true,
+      tasks: [
+        "On Blue Gate, head to Pilgrim's Peak",
+        'Deal 1,000 Damage to ARC enemies using the Osprey',
+      ],
+      perk: 'Scoped (Magnified Sights)', weapons: ['Renegade', 'Jupiter'],
+      research: '5,000 Research Points, 14\u00d7 Snitch Scanners',
+      apply: 'Variable rare topside materials',
+    },
+    'trigger-reset-systems': {
+      tasks: ['Destroy 5 Skulkers with a Raider Tool'],
+      perk: 'Semi-Auto Conversion', weapons: ['Bettina', 'Hairpin'],
       research: '5,000 Research Points, High-tier tech components',
       apply: 'Variable rare topside materials',
     },
   };
 
-  // Projects that are not in metaforge's item data at all.
+  // Projects with no matching metaforge item.
   const EXTRA_RESEARCH = [
     {
       name: 'Action Economy',
-      perk: 'Ergonomic Bolt',
-      weapons: ['Jupiter', 'Osprey'],
-      challenge: 'Complete 3 successful extract raids while landing at least 15 long-range headshots/critical hits per raid',
+      description: 'The Hairpin wastes very little motion between shots. That sort of '
+                 + 'efficiency gets more interesting once a scope is involved.',
+      oneRound: true,
+      tasks: ['Deal 1,000 damage with a Hairpin'],
+      perk: 'Ergonomic Bolt', weapons: ['Jupiter', 'Osprey'],
       research: '5,000 Research Points, High-tier tech components',
       apply: 'Variable rare topside materials',
     },
@@ -605,32 +662,34 @@
           ${r.icon ? `<img class="card-icon" src="${esc(r.icon)}" alt="" onerror="this.style.display='none'">` : ''}
           <div>
             <div class="card-name">${esc(r.name)}</div>
-            ${r.perk ? `<div class="perk">${esc(r.perk)}</div>` : ''}
+            ${r.perk ? `<div class="perk">${esc(r.perk)}<span class="unver">unverified</span></div>` : ''}
           </div>
         </div>
 
         ${r.description ? `<div class="research-hint">${esc(r.description)}</div>` : ''}
 
+        ${r.tasks && r.tasks.length ? `
+          <div class="step verified">
+            <span class="label">Step 1 · Research tasks</span>
+            ${r.oneRound ? '<span class="one-round">In one round</span>' : ''}
+            <ul class="task-list">${r.tasks.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+          </div>` : ''}
+
         ${r.weapons && r.weapons.length ? `
           <div class="step">
-            <span class="label">Compatible weapons</span>
+            <span class="label">Applies to <em>· unverified</em></span>
             <div class="meta-row">${r.weapons.map(w =>
               `<span class="chip cat">${esc(w)}</span>`).join('')}</div>
           </div>` : ''}
 
-        ${r.challenge ? `
-          <div class="step">
-            <span class="label">Step 1 · Challenge</span>${esc(r.challenge)}
-          </div>` : ''}
-
         ${r.research ? `
           <div class="step">
-            <span class="label">Step 2 · Research cost</span>${esc(r.research)}
+            <span class="label">Step 2 · Research cost <em>· unverified</em></span>${esc(r.research)}
           </div>` : ''}
 
         ${r.apply ? `
           <div class="step">
-            <span class="label">Weapon application</span>${esc(r.apply)}
+            <span class="label">Weapon application <em>· unverified</em></span>${esc(r.apply)}
           </div>` : ''}
 
         ${!r.documented ? `

@@ -221,7 +221,14 @@
       font-style: italic;
       opacity: 0.85;
     }
-    .research-task {
+    .perk {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--amp);
+      letter-spacing: 0.02em;
+      margin-top: 2px;
+    }
+    .step {
       font-size: 0.78rem;
       line-height: 1.55;
       background: var(--surface);
@@ -229,7 +236,7 @@
       padding: 8px 10px;
       border: 1px solid var(--border);
     }
-    .research-task .label {
+    .step .label {
       display: block;
       font-size: 0.64rem;
       font-weight: 700;
@@ -238,7 +245,14 @@
       color: var(--accent);
       margin-bottom: 3px;
     }
-    .research-task.unknown { color: var(--muted); border-style: dashed; }
+    .step .meta-row { margin-top: 0; padding-top: 0; }
+    .step.unknown { color: var(--muted); border-style: dashed; }
+    .flag {
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .research-card .card-head { align-items: flex-start; }
 
     /* ── FILTERS ── */
     .filters { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -315,7 +329,13 @@
       <div class="section-head">
         <h2>Research Tasks</h2><span class="section-count" id="res-count"></span>
       </div>
-      <p class="section-note" id="res-note"></p>
+      <p class="section-note">
+        Each project needs a field challenge, then a research cost, then materials to apply
+        the perk to a weapon. Filter by weapon to see what a given gun needs.
+        <br><span style="opacity:.75">Objectives, perks and costs are community-sourced —
+        metaforge publishes only each project's name and in-game description.</span>
+      </p>
+      <div class="filters" id="res-filters"></div>
       <div class="grid" id="res-grid"></div>
     </section>
 
@@ -352,12 +372,122 @@
     u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
   ];
 
-  // metaforge publishes each research task's name, icon and in-game description,
-  // but not its objective or which weapon it amplifies. Fill those in here as
-  // they are confirmed in game, keyed by the item id (e.g. 'beam-resonance-tech').
-  //   'beam-resonance-tech': { task: 'Deal 500 damage with the Equalizer', unlocks: 'Amplified Equalizer' },
+  // Research project details, keyed by metaforge item id. metaforge publishes
+  // only each task's name, icon and in-game description, so the objectives,
+  // perks, compatible weapons and costs below come from community research
+  // rather than the API. Entries with no matching id (no `id` key) still render.
   const RESEARCH_NOTES = {
+    'beam-resonance-tech': {
+      perk: 'Ramping Damage',
+      weapons: ['Equalizer'],
+      challenge: 'Destroy 5 Turbines on the Aphelion',
+      research: '5,000 Research Points, 2× Queen Reactors',
+      apply: '3× Queen Reactors',
+    },
+    'compact-combustion-charges': {
+      perk: 'Incendiary Grenades',
+      weapons: ['Hullcracker', 'Rascal'],
+      challenge: 'Inflict 1,500 fire/burn elemental damage to heavy ARC variants',
+      research: '5,000 Research Points, 3× Fossilized Lightning',
+      apply: 'Variable rare topside materials',
+    },
+    'embedded-blast-engineering': {
+      perk: 'X-Rounds (Explosive Armor-Crushing)',
+      weapons: ['Kettle', 'Anvil', 'Bettina'],
+      challenge: 'Deal 2,000 damage to ARC armor plating using an automatic rifle',
+      research: '5,000 Research Points, High-tier ARC parts',
+      apply: 'Variable rare topside materials',
+    },
+    'solid-core-casting-tech': {
+      perk: 'Slug Rounds',
+      weapons: ['Il Toro'],
+      challenge: 'Destroy 50 flying ARC units using shotguns',
+      research: '5,000 Research Points, 20× Tick Pods',
+      apply: 'Variable rare topside materials',
+    },
+    'burst-assembly-recovery': {
+      perk: 'Burst Fire Conversion',
+      weapons: ['Burletta'],
+      challenge: 'Deal 1,200 weak point damage to ARC targets in a single raid session',
+      research: '5,000 Research Points, High-tier tech components',
+      apply: 'Variable rare topside materials',
+    },
+    'thermite-tipped-rounds': {
+      perk: 'Incendiary Rounds',
+      weapons: ['Rattler', 'Canto', 'Hairpin', 'Aphelion'],
+      challenge: 'Destroy 30 Fireballs using Explosive Mines',
+      research: '5,000 Research Points, 5× Firefly Burners',
+      apply: 'Variable rare topside materials',
+    },
+    'trigger-reset-systems': {
+      perk: 'Semi-Auto Conversion',
+      weapons: ['Bettina', 'Hairpin'],
+      challenge: 'Land 50 precise weak-point hits without missing more than 3 consecutive shots',
+      research: '5,000 Research Points, High-tier tech components',
+      apply: 'Variable rare topside materials',
+    },
+    'top-mounted-optics-retrofittings': {
+      perk: 'Scoped (Magnified Sights)',
+      weapons: ['Renegade', 'Jupiter'],
+      challenge: "Visit Pilgrim's Peak on the Blue Gate map location",
+      research: '5,000 Research Points, 14× Snitch Scanners',
+      apply: 'Variable rare topside materials',
+    },
+    'extended-burst-cycles': {
+      perk: 'Increased Burst Count',
+      weapons: ['Aphelion', 'Burletta'],
+      challenge: 'Inflict 2,500 total burst-mode damage to elite or boss-tier ARC units',
+      research: '5,000 Research Points, High-tier tech components',
+      apply: 'Variable rare topside materials',
+    },
+    'high-voltage-exposure': {
+      perk: 'Charged Burst / Anti-Shield',
+      weapons: ['Aphelion', 'Kettle'],
+      challenge: 'Melt down 10 heavy ARC shields using overcharged or energy-typed armaments',
+      research: '5,000 Research Points, High-tier tech components',
+      apply: 'Variable rare topside materials',
+    },
+    'magazine-geometry-101': {
+      perk: 'Drum Mag (60-Round Capacity)',
+      weapons: ['Rattler'],
+      challenge: 'Fire 1,000 rounds topside and extract successfully without losing your primary weapon',
+      research: '5,000 Research Points, High-tier tech components',
+      apply: 'Variable rare topside materials',
+    },
+    'mobile-fire-grip-fittings': {
+      perk: 'Sprint Shooting Accuracy',
+      weapons: ['Hairpin', 'Burletta', 'Canto', 'Rascal'],
+      challenge: 'Accumulate 1,500 damage points against ARC targets while actively moving or sliding',
+      research: '5,000 Research Points, High-tier tech components',
+      apply: 'Variable rare topside materials',
+    },
+    'shield-stress-testing': {
+      perk: 'Anti-Shield / Full-Auto Conversion',
+      weapons: ['Kettle', 'Burletta'],
+      challenge: 'Deal 700 damage to enemy Raiders (PvP Player Combat)',
+      research: '5,000 Research Points, 2× Matriarch Reactors',
+      apply: 'Variable rare topside materials',
+    },
+    'targeted-component-trial': {
+      perk: 'Anti-Weak Point / Action Reload Count',
+      weapons: ['Equalizer', 'Osprey', 'Rattler', 'Renegade', 'Il Toro'],
+      challenge: 'Deal 200 damage directly to ARC machine weak points using an Osprey rifle',
+      research: '5,000 Research Points, High-tier tech components',
+      apply: 'Variable rare topside materials',
+    },
   };
+
+  // Projects that are not in metaforge's item data at all.
+  const EXTRA_RESEARCH = [
+    {
+      name: 'Action Economy',
+      perk: 'Ergonomic Bolt',
+      weapons: ['Jupiter', 'Osprey'],
+      challenge: 'Complete 3 successful extract raids while landing at least 15 long-range headshots/critical hits per raid',
+      research: '5,000 Research Points, High-tier tech components',
+      apply: 'Variable rare topside materials',
+    },
+  ];
 
   let allItems = [];
   let ampFilter = 'all';
@@ -395,6 +525,7 @@
     }
     allItems = rows;
     renderModules();
+    renderResearchFilters();
     renderResearch();
     renderAmpFilters();
     renderAmplified();
@@ -431,28 +562,81 @@
   const cap = s => s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s;
 
   // ── RESEARCH TASKS ────────────────────────────────────────────────────────
-  function renderResearch() {
-    const res = byType('Research').sort((a, b) => a.name.localeCompare(b.name));
-    const known = res.filter(r => RESEARCH_NOTES[r.id]).length;
-    document.getElementById('res-count').textContent = `${res.length} tasks`;
-    document.getElementById('res-note').textContent = known
-      ? `Objectives confirmed for ${known} of ${res.length}. The rest show the in-game description only.`
-      : `metaforge publishes each task's in-game description but not its objective, so the hint below is what the game says. Confirmed objectives can be added to the page as they are worked out.`;
+  let resFilter = 'all';
 
-    document.getElementById('res-grid').innerHTML = res.map(r => {
-      const note = RESEARCH_NOTES[r.id];
-      return `<div class="card research-card">
+  function researchEntries() {
+    const res = byType('Research').map(r => ({
+      ...(RESEARCH_NOTES[r.id] || {}),
+      id: r.id, name: r.name, icon: r.icon, description: r.description,
+      documented: !!RESEARCH_NOTES[r.id],
+    }));
+    const extras = EXTRA_RESEARCH.map(e => ({ ...e, documented: true, notInApi: true }));
+    return [...res, ...extras].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  function renderResearchFilters() {
+    const all = researchEntries();
+    const weapons = [...new Set(all.flatMap(r => r.weapons || []))].sort();
+    const bar = document.getElementById('res-filters');
+    bar.innerHTML = '';
+    [['all', 'All projects'], ...weapons.map(w => [w, w])].forEach(([key, label]) => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn' + (key === resFilter ? ' active' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', () => {
+        resFilter = key;
+        bar.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+        renderResearch();
+      });
+      bar.appendChild(btn);
+    });
+  }
+
+  function renderResearch() {
+    const all = researchEntries();
+    const shown = resFilter === 'all'
+      ? all
+      : all.filter(r => (r.weapons || []).includes(resFilter));
+
+    document.getElementById('res-count').textContent = `${all.length} projects`;
+    document.getElementById('res-grid').innerHTML = shown.map(r => `
+      <div class="card research-card">
         <div class="card-head">
           ${r.icon ? `<img class="card-icon" src="${esc(r.icon)}" alt="" onerror="this.style.display='none'">` : ''}
-          <div class="card-name">${esc(r.name)}</div>
+          <div>
+            <div class="card-name">${esc(r.name)}</div>
+            ${r.perk ? `<div class="perk">${esc(r.perk)}</div>` : ''}
+          </div>
         </div>
+
         ${r.description ? `<div class="research-hint">${esc(r.description)}</div>` : ''}
-        ${note
-          ? `<div class="research-task"><span class="label">Objective</span>${esc(note.task || '')}</div>
-             ${note.unlocks ? `<div class="meta-row"><span class="chip rarity-amplified">${esc(note.unlocks)}</span></div>` : ''}`
-          : `<div class="research-task unknown"><span class="label">Objective</span>Not published by metaforge</div>`}
-      </div>`;
-    }).join('');
+
+        ${r.weapons && r.weapons.length ? `
+          <div class="step">
+            <span class="label">Compatible weapons</span>
+            <div class="meta-row">${r.weapons.map(w =>
+              `<span class="chip cat">${esc(w)}</span>`).join('')}</div>
+          </div>` : ''}
+
+        ${r.challenge ? `
+          <div class="step">
+            <span class="label">Step 1 · Challenge</span>${esc(r.challenge)}
+          </div>` : ''}
+
+        ${r.research ? `
+          <div class="step">
+            <span class="label">Step 2 · Research cost</span>${esc(r.research)}
+          </div>` : ''}
+
+        ${r.apply ? `
+          <div class="step">
+            <span class="label">Weapon application</span>${esc(r.apply)}
+          </div>` : ''}
+
+        ${!r.documented ? `
+          <div class="step unknown"><span class="label">Objective</span>Not documented</div>` : ''}
+        ${r.notInApi ? `<div class="flag">Not in metaforge's data</div>` : ''}
+      </div>`).join('');
   }
 
   // ── AMPLIFIED WEAPONS ─────────────────────────────────────────────────────

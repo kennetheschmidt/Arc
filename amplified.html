@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amplified Weapons – Arc Raiders</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #141720;
+      --surface2:  #1c2030;
+      --border:    #2a2f42;
+      --accent:    #e8a020;
+      --amp:       #c084fc;
+      --red:       #e8423a;
+      --green:     #4ade80;
+      --blue:      #60a5fa;
+      --text:      #e2e8f0;
+      --muted:     #6b7280;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    nav::-webkit-scrollbar { display: none; }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 14px 12px;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    nav a:hover { color: var(--text); }
+    nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── HEADER ── */
+    .page-header {
+      padding: 28px 24px 0;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .page-header h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .page-header p { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+    .content {
+      flex: 1;
+      padding: 20px 24px 52px;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── STATUS ── */
+    .status { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.9rem; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { color: var(--red); }
+
+    /* ── SECTIONS ── */
+    section { margin-top: 36px; }
+    section:first-of-type { margin-top: 8px; }
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .section-head h2 {
+      font-size: 0.95rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+    .section-count { font-size: 0.75rem; color: var(--muted); }
+    .section-note {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 14px;
+      max-width: 70ch;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .explainer {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amp);
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-size: 0.84rem;
+      line-height: 1.65;
+      color: var(--text);
+    }
+    .explainer strong { color: var(--amp); }
+    .explainer ol { margin: 10px 0 0 18px; }
+    .explainer li { margin-bottom: 6px; }
+
+    /* ── MODULE TIERS ── */
+    .tier-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.83rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .tier-table th {
+      text-align: left;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tier-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .tier-table tr:last-child td { border-bottom: none; }
+    .tier-table tr:hover td { background: var(--surface); }
+    .tier-icon { width: 26px; height: 26px; object-fit: contain; vertical-align: middle; margin-right: 8px; }
+    .mk { font-weight: 700; color: var(--amp); white-space: nowrap; }
+
+    /* ── CARD GRIDS ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .card-head { display: flex; align-items: center; gap: 10px; }
+    .card-icon {
+      width: 38px; height: 38px;
+      object-fit: contain;
+      background: var(--surface);
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .card-name { font-size: 0.9rem; font-weight: 700; line-height: 1.25; }
+    .card-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.55; }
+
+    .meta-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 4px; }
+    .chip {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .chip.cat   { color: var(--text); }
+    .chip.ammo-light    { color: var(--green);  border-color: rgba(74,222,128,0.3); }
+    .chip.ammo-medium   { color: var(--blue);   border-color: rgba(96,165,250,0.3); }
+    .chip.ammo-heavy    { color: var(--accent); border-color: rgba(232,160,32,0.3); }
+    .chip.ammo-energy   { color: var(--amp);    border-color: rgba(192,132,252,0.3); }
+    .chip.ammo-shotgun  { color: var(--red);    border-color: rgba(232,66,58,0.3); }
+    .chip.ammo-launcher { color: var(--red);    border-color: rgba(232,66,58,0.3); }
+    .chip.value { color: var(--accent); }
+
+    .rarity-amplified { color: var(--amp); border-color: rgba(192,132,252,0.35); }
+    .rarity-legendary { color: var(--accent); border-color: rgba(232,160,32,0.35); }
+    .rarity-epic      { color: var(--amp); border-color: rgba(192,132,252,0.35); }
+    .rarity-rare      { color: var(--blue); border-color: rgba(96,165,250,0.35); }
+    .rarity-uncommon  { color: var(--green); border-color: rgba(74,222,128,0.35); }
+    .rarity-common    { color: #9ca3af; }
+
+    /* ── RESEARCH CARD ── */
+    .research-card { border-left: 3px solid var(--amp); }
+    .research-hint {
+      font-size: 0.79rem;
+      color: var(--text);
+      line-height: 1.6;
+      font-style: italic;
+      opacity: 0.85;
+    }
+    .research-task {
+      font-size: 0.78rem;
+      line-height: 1.55;
+      background: var(--surface);
+      border-radius: 6px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+    }
+    .research-task .label {
+      display: block;
+      font-size: 0.64rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--accent);
+      margin-bottom: 3px;
+    }
+    .research-task.unknown { color: var(--muted); border-style: dashed; }
+
+    /* ── FILTERS ── */
+    .filters { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+    .filter-btn {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+
+    footer {
+      text-align: center;
+      padding: 22px;
+      border-top: 1px solid var(--border);
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">Home</a>
+  <a href="events.html">Events</a>
+  <a href="arcs.html">ARC Units</a>
+  <a href="loot.html">Loot</a>
+  <a href="items.html">Items</a>
+  <a href="traders.html">Traders</a>
+  <a href="quests.html">Quests</a>
+  <a href="amplified.html" class="active">Amplified</a>
+</nav>
+
+<div class="page-header">
+  <h1>Amplified Weapons</h1>
+  <p>Research tasks, amplification modules and every amplified variant</p>
+</div>
+
+<div class="content">
+  <div class="status" id="status"><div class="spinner"></div>Loading…</div>
+  <div id="app" style="display:none">
+
+    <section>
+      <div class="section-head"><h2>How Amplification Works</h2></div>
+      <div class="explainer">
+        Amplification turns a standard weapon into an <strong>Amplified</strong> variant.
+        <ol>
+          <li>Complete a <strong>research task</strong> — each one studies a particular behaviour in the field.</li>
+          <li>Obtain the <strong>Amplification Module</strong> matching the base weapon's rarity. A module only unlocks amplification for its own tier.</li>
+          <li>Amplify the weapon to get the Amplified variant.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Amplification Modules</h2><span class="section-count" id="mod-count"></span>
+      </div>
+      <p class="section-note">Each module tier unlocks amplification for one base-weapon rarity.</p>
+      <table class="tier-table">
+        <thead><tr><th>Module</th><th>Unlocks</th><th>Value</th><th>Weight</th></tr></thead>
+        <tbody id="mod-rows"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Research Tasks</h2><span class="section-count" id="res-count"></span>
+      </div>
+      <p class="section-note" id="res-note"></p>
+      <div class="grid" id="res-grid"></div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Amplified Weapons</h2><span class="section-count" id="amp-count"></span>
+      </div>
+      <div class="filters" id="amp-filters"></div>
+      <div class="grid" id="amp-grid"></div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Research Items</h2><span class="section-count" id="ri-count"></span>
+      </div>
+      <p class="section-note">Documents and components that turn up in the field.</p>
+      <div class="grid" id="ri-grid"></div>
+    </section>
+
+  </div>
+</div>
+
+<footer>
+  Data from <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener">metaforge.app</a>
+</footer>
+
+<script>
+  // Same-origin snapshot written by the Refresh Game Data workflow; proxies are
+  // only a fallback, since metaforge asks that we not call their API directly.
+  const CACHE_URL = './data/items.json';
+  const SOURCE    = 'https://metaforge.app/api/arc-raiders/items';
+  const PROXIES = [
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  ];
+
+  // metaforge publishes each research task's name, icon and in-game description,
+  // but not its objective or which weapon it amplifies. Fill those in here as
+  // they are confirmed in game, keyed by the item id (e.g. 'beam-resonance-tech').
+  //   'beam-resonance-tech': { task: 'Deal 500 damage with the Equalizer', unlocks: 'Amplified Equalizer' },
+  const RESEARCH_NOTES = {
+  };
+
+  let allItems = [];
+  let ampFilter = 'all';
+
+  async function fetchWithFallback(cacheUrl, sourceUrl, proxies) {
+    try {
+      const res = await fetch(cacheUrl, { cache: 'no-store' });
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    for (const proxyFn of proxies) {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 8000);
+      try {
+        const res = await fetch(proxyFn(sourceUrl), {
+          headers: { Accept: 'application/json' }, cache: 'no-store', signal: ctl.signal,
+        });
+        clearTimeout(timer);
+        if (!res.ok) continue;
+        const text = (await res.text()).trim();
+        if (!text.startsWith('{') && !text.startsWith('[')) continue;
+        return JSON.parse(text);
+      } catch (_) { clearTimeout(timer); }
+    }
+    return null;
+  }
+
+  async function load() {
+    const json = await fetchWithFallback(CACHE_URL, SOURCE, PROXIES);
+    const rows = json && (json.data || (Array.isArray(json) ? json : null));
+    if (!rows || !rows.length) {
+      const el = document.getElementById('status');
+      el.className = 'status error';
+      el.innerHTML = '&#9888; Could not load item data.';
+      return;
+    }
+    allItems = rows;
+    renderModules();
+    renderResearch();
+    renderAmpFilters();
+    renderAmplified();
+    renderResearchItems();
+    document.getElementById('status').style.display = 'none';
+    document.getElementById('app').style.display = '';
+  }
+
+  const byType = t => allItems.filter(i => i.item_type === t);
+  const num = n => (n === null || n === undefined) ? '—' : n.toLocaleString();
+
+  // ── MODULES ───────────────────────────────────────────────────────────────
+  function renderModules() {
+    const mods = allItems
+      .filter(i => i.name.includes('Amplification Module'))
+      .sort((a, b) => romanOf(a.name) - romanOf(b.name));
+    document.getElementById('mod-count').textContent = `${mods.length} tiers`;
+    document.getElementById('mod-rows').innerHTML = mods.map(m => {
+      // "…unlocks <rarity> weapon Amplification."
+      const tier = (m.description || '').match(/unlocks (\w+) weapon/i);
+      const rarity = tier ? tier[1] : '—';
+      return `<tr>
+        <td>
+          ${m.icon ? `<img class="tier-icon" src="${esc(m.icon)}" alt="" onerror="this.style.display='none'">` : ''}
+          <span class="mk">${esc(m.name.replace('Amplification Module ', ''))}</span>
+        </td>
+        <td><span class="chip rarity-${esc(rarity.toLowerCase())}">${esc(cap(rarity))}</span> weapons</td>
+        <td>${num(m.value)}</td>
+        <td>${(m.stat_block && m.stat_block.weight) || '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+  const romanOf = n => ({I:1,II:2,III:3,IV:4,V:5})[(n.match(/MK\.?\s*([IVX]+)/i) || [])[1]] || 99;
+  const cap = s => s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : s;
+
+  // ── RESEARCH TASKS ────────────────────────────────────────────────────────
+  function renderResearch() {
+    const res = byType('Research').sort((a, b) => a.name.localeCompare(b.name));
+    const known = res.filter(r => RESEARCH_NOTES[r.id]).length;
+    document.getElementById('res-count').textContent = `${res.length} tasks`;
+    document.getElementById('res-note').textContent = known
+      ? `Objectives confirmed for ${known} of ${res.length}. The rest show the in-game description only.`
+      : `metaforge publishes each task's in-game description but not its objective, so the hint below is what the game says. Confirmed objectives can be added to the page as they are worked out.`;
+
+    document.getElementById('res-grid').innerHTML = res.map(r => {
+      const note = RESEARCH_NOTES[r.id];
+      return `<div class="card research-card">
+        <div class="card-head">
+          ${r.icon ? `<img class="card-icon" src="${esc(r.icon)}" alt="" onerror="this.style.display='none'">` : ''}
+          <div class="card-name">${esc(r.name)}</div>
+        </div>
+        ${r.description ? `<div class="research-hint">${esc(r.description)}</div>` : ''}
+        ${note
+          ? `<div class="research-task"><span class="label">Objective</span>${esc(note.task || '')}</div>
+             ${note.unlocks ? `<div class="meta-row"><span class="chip rarity-amplified">${esc(note.unlocks)}</span></div>` : ''}`
+          : `<div class="research-task unknown"><span class="label">Objective</span>Not published by metaforge</div>`}
+      </div>`;
+    }).join('');
+  }
+
+  // ── AMPLIFIED WEAPONS ─────────────────────────────────────────────────────
+  const ampWeapons = () => allItems
+    .filter(i => i.name.startsWith('Amplified '))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  function renderAmpFilters() {
+    const cats = [...new Set(ampWeapons().map(w => w.subcategory).filter(Boolean))].sort();
+    const bar = document.getElementById('amp-filters');
+    bar.innerHTML = '';
+    [['all', 'All'], ...cats.map(c => [c, c])].forEach(([key, label]) => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn' + (key === ampFilter ? ' active' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', () => {
+        ampFilter = key;
+        bar.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+        renderAmplified();
+      });
+      bar.appendChild(btn);
+    });
+  }
+
+  function renderAmplified() {
+    const all = ampWeapons();
+    const shown = ampFilter === 'all' ? all : all.filter(w => w.subcategory === ampFilter);
+    document.getElementById('amp-count').textContent = `${all.length} variants`;
+    document.getElementById('amp-grid').innerHTML = shown.map(w => `
+      <div class="card">
+        <div class="card-head">
+          ${w.icon ? `<img class="card-icon" src="${esc(w.icon)}" alt="" onerror="this.style.display='none'">` : ''}
+          <div>
+            <div class="card-name">${esc(w.name)}</div>
+            ${w.subcategory ? `<div class="card-desc">${esc(w.subcategory)}</div>` : ''}
+          </div>
+        </div>
+        <div class="meta-row">
+          ${w.ammo_type ? `<span class="chip ammo-${esc(w.ammo_type)}">${esc(cap(w.ammo_type))}</span>` : ''}
+          ${w.value ? `<span class="chip value">${num(w.value)}</span>` : ''}
+          ${(w.stat_block && w.stat_block.weight) ? `<span class="chip">${w.stat_block.weight} kg</span>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  // ── RESEARCH ITEMS ────────────────────────────────────────────────────────
+  function renderResearchItems() {
+    const ri = byType('Research Item').sort((a, b) => a.name.localeCompare(b.name));
+    document.getElementById('ri-count').textContent = `${ri.length} items`;
+    document.getElementById('ri-grid').innerHTML = ri.map(i => `
+      <div class="card">
+        <div class="card-head">
+          ${i.icon ? `<img class="card-icon" src="${esc(i.icon)}" alt="" onerror="this.style.display='none'">` : ''}
+          <div class="card-name">${esc(i.name)}</div>
+        </div>
+        ${i.description ? `<div class="card-desc">${esc(i.description)}</div>` : ''}
+        <div class="meta-row">
+          ${i.rarity ? `<span class="chip rarity-${esc(String(i.rarity).toLowerCase())}">${esc(i.rarity)}</span>` : ''}
+          ${i.value ? `<span class="chip value">${num(i.value)}</span>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  load();
+</script>
+</body>
+</html>

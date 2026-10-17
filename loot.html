@@ -348,6 +348,37 @@
       letter-spacing: 0.05em;
       flex-shrink: 0;
     }
+    .select-filter {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2, #1c2030);
+      color: var(--text);
+      font-size: 0.8rem;
+      outline: none;
+      cursor: pointer;
+      max-width: 160px;
+    }
+    .select-filter:focus { border-color: var(--accent); }
+    .area-tag {
+      display: inline-block;
+      font-size: 0.66rem;
+      padding: 1px 7px;
+      border-radius: 4px;
+      background: rgba(96,165,250,0.12);
+      color: #60a5fa;
+      margin-right: 4px;
+    }
+    .loot-value { color: var(--accent); font-size: 0.74rem; font-weight: 600; }
+    .rarity-amplified { background: rgba(192,132,252,0.15); color: #c084fc; }
+    .rarity-unrated   { background: rgba(107,114,128,0.15); color: var(--muted); }
+    #result-count {
+      font-size: 0.74rem;
+      color: var(--muted);
+      padding: 0 20px 10px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
   </style>
 </head>
 <body>
@@ -375,13 +406,18 @@
 <div id="controls">
   <input id="search" type="search" placeholder="Search items…" autocomplete="off" />
   <button class="filter-btn active" data-rarity="all">All</button>
+  <button class="filter-btn" data-rarity="Amplified">Amplified</button>
   <button class="filter-btn" data-rarity="Legendary">Legendary</button>
   <button class="filter-btn" data-rarity="Epic">Epic</button>
   <button class="filter-btn" data-rarity="Rare">Rare</button>
   <button class="filter-btn" data-rarity="Uncommon">Uncommon</button>
   <button class="filter-btn" data-rarity="Common">Common</button>
+  <button class="filter-btn" data-rarity="Unrated">Unrated</button>
+  <select id="type-filter" class="select-filter"><option value="all">All types</option></select>
+  <select id="area-filter" class="select-filter"><option value="all">All areas</option></select>
 </div>
 
+<div id="result-count"></div>
 <main id="main"></main>
 
 <footer style="text-align:center;padding:24px;margin-top:32px;border-top:1px solid var(--border);font-size:0.78rem;color:var(--muted)">
@@ -840,33 +876,84 @@
     'shotgun-ammo': { used_in: [], dropped_by: [], recycles_into: [], recycled_from: [] },
   };
 
-  const RARITY_ORDER = { Legendary: 0, Epic: 1, Rare: 2, Uncommon: 3, Common: 4 };
+  const RARITY_ORDER = { Amplified: 0, Legendary: 1, Epic: 2, Rare: 3,
+                         Uncommon: 4, Common: 5, Unrated: 6 };
+  const rarityOf = i => i.rarity || 'Unrated';
 
-  // Build inverted index: item name → { icon, rarity, item_type, sources: [arcId...] }
-  function buildIndex() {
-    const index = new Map();
-    for (const [arcId, items] of Object.entries(LOOT)) {
-      for (const item of items) {
-        if (!index.has(item.name)) {
-          index.set(item.name, { ...item, sources: [] });
-        }
-        index.get(item.name).sources.push(arcId);
+  // The hardcoded LOOT table is the only source of per-ARC drop attribution -
+  // metaforge publishes none - so it stays, but only to tag items. The list
+  // itself comes from the snapshot so it covers the full catalogue.
+  const CACHE_URL = './data/items.json';
+  const SOURCE    = 'https://metaforge.app/api/arc-raiders/items';
+
+  function arcSourcesByItemName() {
+    const map = new Map();
+    for (const [arcId, drops] of Object.entries(LOOT)) {
+      for (const d of drops) {
+        if (!map.has(d.name)) map.set(d.name, []);
+        map.get(d.name).push(arcId);
       }
     }
-    return [...index.values()].sort((a, b) =>
-      (RARITY_ORDER[a.rarity] ?? 9) - (RARITY_ORDER[b.rarity] ?? 9) || a.name.localeCompare(b.name)
-    );
+    return map;
   }
 
-  let allItems = buildIndex();
+  async function fetchItems() {
+    try {
+      const res = await fetch(CACHE_URL, { cache: 'no-store' });
+      if (res.ok) {
+        const j = await res.json();
+        const rows = j.data || (Array.isArray(j) ? j : null);
+        if (rows && rows.length) return rows;
+      }
+    } catch (_) {}
+    for (const proxyFn of PROXIES) {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 8000);
+      try {
+        const res = await fetch(proxyFn(`${SOURCE}?limit=500&page=1`), {
+          headers: { Accept: 'application/json' }, cache: 'no-store', signal: ctl.signal,
+        });
+        clearTimeout(timer);
+        if (!res.ok) continue;
+        const text = (await res.text()).trim();
+        if (!text.startsWith('{') && !text.startsWith('[')) continue;
+        const j = JSON.parse(text);
+        const rows = j.data || (Array.isArray(j) ? j : null);
+        if (rows && rows.length) return rows;
+      } catch (_) { clearTimeout(timer); }
+    }
+    return null;
+  }
+
+  function buildIndex(rows) {
+    const arcMap = arcSourcesByItemName();
+    return rows
+      .map(i => ({ ...i, sources: arcMap.get(i.name) || [] }))
+      .sort((a, b) =>
+        (RARITY_ORDER[rarityOf(a)] ?? 9) - (RARITY_ORDER[rarityOf(b)] ?? 9) ||
+        a.name.localeCompare(b.name));
+  }
+
+  let allItems = [];
   let activeRarity = 'all';
+  let activeType = 'all';
+  let activeArea = 'all';
+
+  const areasOf = i => (i.loot_area || '').split(',').map(a => a.trim()).filter(Boolean);
 
   function render(query = '') {
     const q = query.toLowerCase();
     const items = allItems.filter(item =>
-      (activeRarity === 'all' || item.rarity === activeRarity) &&
-      (!q || item.name.toLowerCase().includes(q) || item.item_type.toLowerCase().includes(q))
+      (activeRarity === 'all' || rarityOf(item) === activeRarity) &&
+      (activeType === 'all' || item.item_type === activeType) &&
+      (activeArea === 'all' || areasOf(item).includes(activeArea)) &&
+      (!q || item.name.toLowerCase().includes(q)
+          || (item.item_type || '').toLowerCase().includes(q)
+          || (item.description || '').toLowerCase().includes(q))
     );
+
+    document.getElementById('result-count').textContent =
+      `${items.length} of ${allItems.length} items`;
 
     const main = document.getElementById('main');
     if (!items.length) {
@@ -878,8 +965,9 @@
     if (activeRarity === 'all') {
       const groups = {};
       for (const item of items) {
-        if (!groups[item.rarity]) groups[item.rarity] = [];
-        groups[item.rarity].push(item);
+        const r = rarityOf(item);
+        if (!groups[r]) groups[r] = [];
+        groups[r].push(item);
       }
       main.innerHTML = Object.entries(RARITY_ORDER)
         .filter(([r]) => groups[r])
@@ -896,6 +984,8 @@
     const sources = item.sources.map(id =>
       `<span class="source-tag">${ARC_NAMES[id] ?? id}</span>`
     ).join('');
+    const rarity = rarityOf(item);
+    const areas = areasOf(item).map(a => `<span class="area-tag">${a}</span>`).join('');
     return `
       <div class="loot-item" data-name="${item.name.replace(/"/g,'&quot;')}">
         <div class="loot-icon">
@@ -904,10 +994,11 @@
         <div class="loot-info">
           <div class="loot-name">${item.name}</div>
           <div class="loot-meta">
-            <span class="rarity rarity-${item.rarity.toLowerCase()}">${item.rarity}</span>
+            <span class="rarity rarity-${rarity.toLowerCase()}">${rarity}</span>
             <span class="loot-type">${item.item_type}</span>
+            ${item.value ? `<span class="loot-value">${item.value.toLocaleString()}</span>` : ''}
           </div>
-          <div class="loot-sources">${sources}</div>
+          <div class="loot-sources">${sources}${areas}</div>
         </div>
         <div style="color:var(--muted);font-size:1rem;padding-left:4px;flex-shrink:0">›</div>
       </div>`;
@@ -926,18 +1017,47 @@
     render(searchEl.value);
   });
 
-  // Filter by arc if ?arc= param present
-  const arcParam = new URLSearchParams(location.search).get('arc');
-  if (arcParam && ARC_NAMES[arcParam]) {
-    allItems = allItems.filter(item => item.sources.includes(arcParam));
-    const label = document.createElement('div');
-    label.style.cssText = 'padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);font-size:0.82rem;color:var(--muted);display:flex;align-items:center;gap:10px';
-    label.innerHTML = `Showing drops for <strong style="color:var(--text)">${ARC_NAMES[arcParam]}</strong>
-      <a href="loot.html" style="color:var(--accent);font-size:0.75rem;text-decoration:none;border:1px solid var(--accent);border-radius:4px;padding:2px 8px">Show all</a>`;
-    document.getElementById('controls').insertAdjacentElement('afterend', label);
+  // Type / area dropdowns, populated from whatever the snapshot actually holds
+  const typeEl = document.getElementById('type-filter');
+  const areaEl = document.getElementById('area-filter');
+
+  function buildFacets() {
+    const types = [...new Set(allItems.map(i => i.item_type).filter(Boolean))].sort();
+    const areas = [...new Set(allItems.flatMap(areasOf))].sort();
+    typeEl.innerHTML = '<option value="all">All types</option>' +
+      types.map(t => `<option value="${t}">${t}</option>`).join('');
+    areaEl.innerHTML = '<option value="all">All areas</option>' +
+      areas.map(a => `<option value="${a}">${a}</option>`).join('');
+  }
+  typeEl.addEventListener('change', () => { activeType = typeEl.value; render(searchEl.value); });
+  areaEl.addEventListener('change', () => { activeArea = areaEl.value; render(searchEl.value); });
+
+  async function init() {
+    const main = document.getElementById('main');
+    main.innerHTML = '<div class="empty">Loading items…</div>';
+    const rows = await fetchItems();
+    if (!rows) {
+      main.innerHTML = '<div class="empty">Could not load item data.</div>';
+      return;
+    }
+    allItems = buildIndex(rows);
+    buildFacets();
+
+    // Filter by arc if ?arc= param present
+    const arcParam = new URLSearchParams(location.search).get('arc');
+    if (arcParam && ARC_NAMES[arcParam]) {
+      allItems = allItems.filter(item => item.sources.includes(arcParam));
+      const label = document.createElement('div');
+      label.style.cssText = 'padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);font-size:0.82rem;color:var(--muted);display:flex;align-items:center;gap:10px';
+      label.innerHTML = `Showing drops for <strong style="color:var(--text)">${ARC_NAMES[arcParam]}</strong>
+        <a href="loot.html" style="color:var(--accent);font-size:0.75rem;text-decoration:none;border:1px solid var(--accent);border-radius:4px;padding:2px 8px">Show all</a>`;
+      document.getElementById('controls').insertAdjacentElement('afterend', label);
+    }
+
+    render();
   }
 
-  render();
+  init();
 
   // ── ITEM DETAIL MODAL ─────────────────────────────────────────────────────
 

@@ -329,25 +329,29 @@
     u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
   ];
 
-  // The API serializes each event's wall-clock hour as a UTC timestamp, but the
-  // schedule actually runs at that hour in the viewer's own region — every server
-  // region shares one rotation, offset by its local time. So read the UTC clock
-  // components back as local time. Confirmed against a logged-in NA view: blocks
-  // the feed labels 11:00/12:00 UTC ran at 11:00/12:00 PDT.
-  function toLocalWallClock(ms) {
-    const d = new Date(ms);
-    return new Date(
-      d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(),
-      d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()
-    ).getTime();
+  // The feed's timestamps run a fixed 7 hours behind the server's actual event
+  // times, so shift them and let the browser render true UTC in local time.
+  //
+  // This is a CONSTANT, not the viewer's timezone offset. An earlier version
+  // read each timestamp's UTC clock as local time, which happens to equal +7h
+  // only while the US is on PDT; it drifted an hour out the moment PST began.
+  // Measured either side of that change, against a logged-in NA view:
+  //   2026-09-19  feed 11:00 -> live 18:00 UTC  (+7h)
+  //   2026-11-06  feed 20:00 -> live 03:00 UTC  (+7h)
+  // If the schedule ever looks uniformly shifted again, re-measure and change
+  // this one number rather than reaching for timezone maths.
+  const FEED_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+  function toEventTime(ms) {
+    return ms + FEED_OFFSET_MS;
   }
 
   function normalizeEvents(events) {
     if (!events || !events.length) return null;
     return events.map(e => ({
       ...e,
-      startTime: toLocalWallClock(e.startTime),
-      endTime:   toLocalWallClock(e.endTime),
+      startTime: toEventTime(e.startTime),
+      endTime:   toEventTime(e.endTime),
     }));
   }
 

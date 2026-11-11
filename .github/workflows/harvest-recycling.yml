@@ -13,6 +13,10 @@ on:
         description: 'Probe a few items and report the shape, without harvesting'
         type: boolean
         default: false
+      refetch_all:
+        description: 'Re-fetch every item instead of only ones not yet checked'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -29,13 +33,30 @@ jobs:
       - name: Probe and harvest
         env:
           PROBE_ONLY: ${{ inputs.probe_only }}
+          REFETCH_ALL: ${{ inputs.refetch_all }}
         run: |
           python3 - <<'PY'
           import json, os, time, urllib.request, urllib.error
 
-          probe_only = os.environ.get('PROBE_ONLY') == 'true'
+          probe_only  = os.environ.get('PROBE_ONLY') == 'true'
+          refetch_all = os.environ.get('REFETCH_ALL') == 'true'
           items = json.load(open('data/items.json'))['data']
           print(f'catalogue: {len(items)} items')
+
+          # Each item is its own file on the CDN, so there is no bulk request to
+          # make. Instead keep what we already fetched and only ask for ids we
+          # have never checked - after a patch that is a handful, not a thousand.
+          prev, checked = {}, set()
+          if not refetch_all:
+              try:
+                  with open('data/recycling.json') as f:
+                      doc = json.load(f)
+                  prev = doc.get('items', {})
+                  # Older files recorded only the items that had data.
+                  checked = set(doc.get('checked') or prev.keys())
+                  print(f'already checked: {len(checked)}  (with data: {len(prev)})')
+              except (OSError, ValueError):
+                  print('no usable previous harvest; fetching everything')
 
           PATTERNS = [
               ('static-cdn', 'https://static.metaforge.app/arc-raiders/data/items/{id}.json'),
@@ -104,9 +125,11 @@ jobs:
           if probe_only:
               raise SystemExit(0)
 
-          # --- 2. harvest every item ---
-          out, ok, miss = {}, 0, 0
-          for n, it in enumerate(items, 1):
+          # --- 2. harvest, skipping ids already checked ---
+          out, ok, miss = dict(prev), 0, 0
+          todo = [i for i in items if refetch_all or i['id'] not in checked]
+          print(f'\nto fetch: {len(todo)} of {len(items)}')
+          for n, it in enumerate(todo, 1):
               iid = it['id']
               try:
                   d = unwrap(get(pat.format(id=iid)))
@@ -114,6 +137,7 @@ jobs:
                   miss += 1
                   time.sleep(0.2)
                   continue
+              checked.add(iid)
               if isinstance(d, dict):
                   rec = {k: v for k, v in d.items()
                          if any(h in k.lower() for h in RECYCLE_HINTS) and v}
@@ -122,12 +146,13 @@ jobs:
                       out[iid] = rec
                       ok += 1
               if n % 100 == 0:
-                  print(f'  {n}/{len(items)}  with data: {ok}  failed: {miss}')
+                  print(f'  {n}/{len(todo)}  new with data: {ok}  failed: {miss}')
               time.sleep(0.25)
 
-          print(f'\nharvested {ok} items with recycling data ({miss} requests failed)')
+          print(f'\nfetched {len(todo)}: {ok} new with recycling data, {miss} failed')
+          print(f'total with data: {len(out)}   total checked: {len(checked)}')
           with open('data/recycling.json', 'w') as f:
-              json.dump({'source': label, 'items': out}, f)
+              json.dump({'source': label, 'checked': sorted(checked), 'items': out}, f)
           print('wrote data/recycling.json')
           PY
 

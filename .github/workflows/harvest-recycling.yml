@@ -36,123 +36,95 @@ jobs:
           REFETCH_ALL: ${{ inputs.refetch_all }}
         run: |
           python3 - <<'PY'
-          import json, os, time, urllib.request, urllib.error
+          import json, os, time, urllib.request
 
-          probe_only  = os.environ.get('PROBE_ONLY') == 'true'
-          refetch_all = os.environ.get('REFETCH_ALL') == 'true'
-          items = json.load(open('data/items.json'))['data']
-          print(f'catalogue: {len(items)} items')
-
-          # Each item is its own file on the CDN, so there is no bulk request to
-          # make. Instead keep what we already fetched and only ask for ids we
-          # have never checked - after a patch that is a handful, not a thousand.
-          prev, checked = {}, set()
-          if not refetch_all:
-              try:
-                  with open('data/recycling.json') as f:
-                      doc = json.load(f)
-                  prev = doc.get('items', {})
-                  # Older files recorded only the items that had data.
-                  checked = set(doc.get('checked') or prev.keys())
-                  print(f'already checked: {len(checked)}  (with data: {len(prev)})')
-              except (OSError, ValueError):
-                  print('no usable previous harvest; fetching everything')
-
-          PATTERNS = [
-              ('static-cdn', 'https://static.metaforge.app/arc-raiders/data/items/{id}.json'),
-              ('cdn',        'https://cdn.metaforge.app/arc-raiders/data/{id}.json'),
-              ('api-items',  'https://metaforge.app/api/arc-raiders/items/{id}'),
-              ('api-item',   'https://metaforge.app/api/arc-raiders/item/{id}'),
-          ]
-          # Keys the loot modal looks for; we keep whatever actually turns up.
-          RECYCLE_HINTS = ('recycle', 'recycles', 'recycling', 'recycled',
-                           'recycles_into', 'recycled_from', 'materials',
-                           'used_in', 'crafting', 'ingredient', 'components')
+          BASE = 'https://metaforge.app/api/arc-raiders/items'
+          probe_only = os.environ.get('PROBE_ONLY') == 'true'
 
           def get(url):
               req = urllib.request.Request(url, headers={
                   'Accept': 'application/json',
                   'User-Agent': 'github.com/kennetheschmidt/Arc (static site cache)',
               })
-              with urllib.request.urlopen(req, timeout=20) as r:
+              with urllib.request.urlopen(req, timeout=30) as r:
                   return json.loads(r.read().decode())
 
-          def unwrap(doc):
-              return doc.get('data', doc) if isinstance(doc, dict) else doc
+          # metaforge documents this endpoint as supporting "component
+          # relationships", so look for the parameter that turns them on
+          # rather than fetching a thousand per-item files.
+          CANDIDATES = [
+              'components=true', 'include=components', 'expand=components',
+              'relations=true', 'include=relations', 'expand=relations',
+              'recycling=true', 'include=recycling', 'full=true', 'details=true',
+          ]
 
-          # --- 1. find a pattern that returns recycling-ish data ---
-          samples = [i['id'] for i in items[:40]]
+          base = get(f'{BASE}?limit=1&page=1')
+          sample = (base.get('data') or [{}])[0]
+          base_keys = set(sample)
+          print(f'baseline item: {sample.get("name")}')
+          print(f'baseline keys ({len(base_keys)}): {sorted(base_keys)}')
+          print()
+
           winner = None
-          for label, pat in PATTERNS:
-              hits = 0
-              shape = None
-              for iid in samples[:8]:
-                  try:
-                      d = unwrap(get(pat.format(id=iid)))
-                  except Exception as e:
-                      continue
-                  if not isinstance(d, dict):
-                      continue
-                  keys = [k for k in d if any(h in k.lower() for h in RECYCLE_HINTS)]
-                  if keys:
-                      hits += 1
-                      if shape is None:
-                          shape = (iid, sorted(d.keys()), {k: d[k] for k in keys})
-                  time.sleep(0.3)
-              print(f'  {label:12} recycling-bearing responses: {hits}/8')
-              if hits and winner is None:
-                  winner = (label, pat, shape)
+          for q in CANDIDATES:
+              try:
+                  d = get(f'{BASE}?limit=1&page=1&{q}')
+              except Exception as e:
+                  print(f'  {q:24} failed: {e}')
+                  time.sleep(0.5)
+                  continue
+              it = (d.get('data') or [{}])[0]
+              new = set(it) - base_keys
+              changed = [k for k in base_keys & set(it)
+                         if json.dumps(it.get(k), sort_keys=True, default=str)
+                         != json.dumps(sample.get(k), sort_keys=True, default=str)]
+              flag = ''
+              if new:
+                  flag = f'  *** adds {sorted(new)} ***'
+                  if winner is None:
+                      winner = (q, sorted(new), it)
+              elif changed:
+                  flag = f'  (differs in {changed})'
+              print(f'  {q:24} keys={len(it)}{flag}')
+              time.sleep(0.5)
 
+          print()
           if not winner:
-              print('\nNo pattern returned recycling data. Raw first response per pattern:')
-              for label, pat in PATTERNS:
-                  try:
-                      d = get(pat.format(id=samples[0]))
-                      print(f'\n--- {label} ---')
-                      print(json.dumps(d, indent=2)[:1200])
-                  except Exception as e:
-                      print(f'\n--- {label} --- failed: {e}')
-              raise SystemExit('no recycling source found')
+              print('No parameter exposed extra fields.')
+              print('\nFull baseline record, for designing against what IS available:')
+              print(json.dumps(sample, indent=2)[:2500])
+              raise SystemExit('no component-relationship parameter found')
 
-          label, pat, shape = winner
-          iid, allkeys, found = shape
-          print(f'\nusing pattern: {label}')
-          print(f'sample item  : {iid}')
-          print(f'all keys     : {allkeys}')
-          print(f'\nrecycling-ish fields on that item:')
-          print(json.dumps(found, indent=2)[:1500])
+          q, new, it = winner
+          print(f'WINNER: {q}  adds {new}')
+          print(json.dumps({k: it[k] for k in new}, indent=2)[:2000])
 
           if probe_only:
               raise SystemExit(0)
 
-          # --- 2. harvest, skipping ids already checked ---
-          out, ok, miss = dict(prev), 0, 0
-          todo = [i for i in items if refetch_all or i['id'] not in checked]
-          print(f'\nto fetch: {len(todo)} of {len(items)}')
-          for n, it in enumerate(todo, 1):
-              iid = it['id']
-              try:
-                  d = unwrap(get(pat.format(id=iid)))
-              except Exception:
-                  miss += 1
-                  time.sleep(0.2)
-                  continue
-              checked.add(iid)
-              if isinstance(d, dict):
-                  rec = {k: v for k, v in d.items()
-                         if any(h in k.lower() for h in RECYCLE_HINTS) and v}
-                  if rec:
-                      rec['name'] = it['name']
-                      out[iid] = rec
-                      ok += 1
-              if n % 100 == 0:
-                  print(f'  {n}/{len(todo)}  new with data: {ok}  failed: {miss}')
-              time.sleep(0.25)
+          # Harvest the whole catalogue with that parameter, paginated.
+          merged, page = None, 1
+          while page <= 25:
+              d = get(f'{BASE}?{q}&limit=500&page={page}')
+              rows = d.get('data') or []
+              if merged is None:
+                  merged = d
+              else:
+                  merged['data'].extend(rows)
+              pg = d.get('pagination') or {}
+              print(f'  page {page}: {len(rows)} rows')
+              if not pg.get('hasNextPage'):
+                  break
+              page += 1
+              time.sleep(1)
 
-          print(f'\nfetched {len(todo)}: {ok} new with recycling data, {miss} failed')
-          print(f'total with data: {len(out)}   total checked: {len(checked)}')
+          rows = merged['data']
+          withrel = [r for r in rows if any(r.get(k) for k in new)]
+          print(f'\n{len(rows)} items, {len(withrel)} carrying relationship data')
+          out = {r['id']: {k: r[k] for k in new if r.get(k)} | {'name': r['name']}
+                 for r in withrel}
           with open('data/recycling.json', 'w') as f:
-              json.dump({'source': label, 'checked': sorted(checked), 'items': out}, f)
+              json.dump({'source': q, 'fields': new, 'items': out}, f)
           print('wrote data/recycling.json')
           PY
 

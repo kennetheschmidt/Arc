@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stash Manager – Arc Raiders</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0f14;
+      --surface:  #141720;
+      --surface2: #1c2030;
+      --border:   #2a2f42;
+      --accent:   #e8a020;
+      --green:    #4ade80;
+      --red:      #e8423a;
+      --blue:     #60a5fa;
+      --purple:   #c084fc;
+      --text:     #e2e8f0;
+      --muted:    #6b7280;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    nav::-webkit-scrollbar { display: none; }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 14px 12px;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    nav a:hover { color: var(--text); }
+    nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .page-header { padding: 26px 24px 0; max-width: 1100px; margin: 0 auto; width: 100%; }
+    .page-header h1 {
+      font-size: 1.4rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .page-header p { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+    .content { flex: 1; padding: 18px 24px 52px; max-width: 1100px; margin: 0 auto; width: 100%; }
+
+    .status { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.9rem; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tab {
+      padding: 7px 15px; border-radius: 20px;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--muted); font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab:hover { border-color: var(--accent); color: var(--accent); }
+    .tab.active { background: var(--accent); border-color: var(--accent); color: #000; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .note {
+      font-size: 0.78rem; color: var(--muted); line-height: 1.6;
+      margin-bottom: 14px; max-width: 76ch;
+    }
+    .note strong { color: var(--text); }
+
+    /* ── CONTROLS ── */
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    .controls input, .controls select {
+      padding: 7px 11px; border-radius: 7px;
+      border: 1px solid var(--border); background: var(--surface2);
+      color: var(--text); font-size: 0.82rem; outline: none;
+    }
+    .controls input { min-width: 200px; flex: 1; max-width: 320px; }
+    .controls input:focus, .controls select:focus { border-color: var(--accent); }
+    .count { font-size: 0.74rem; color: var(--muted); margin-left: auto; }
+
+    /* ── TABLE ── */
+    .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; background: var(--surface2); }
+    th {
+      text-align: left; font-size: 0.66rem; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--muted); padding: 10px 12px;
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+      position: sticky; top: 0; background: var(--surface); cursor: pointer; user-select: none;
+    }
+    th:hover { color: var(--accent); }
+    th.sorted { color: var(--accent); }
+    th .arrow { font-size: 0.6rem; margin-left: 3px; }
+    td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--surface); }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+    .item-cell { display: flex; align-items: center; gap: 9px; min-width: 190px; }
+    .item-icon {
+      width: 28px; height: 28px; border-radius: 5px;
+      background: var(--surface); object-fit: contain; flex-shrink: 0;
+    }
+    .sub { font-size: 0.7rem; color: var(--muted); }
+
+    .pill {
+      display: inline-block; font-size: 0.66rem; font-weight: 600;
+      padding: 1px 7px; border-radius: 4px; white-space: nowrap;
+    }
+    .r-amplified { background: rgba(192,132,252,.15); color: var(--purple); }
+    .r-legendary { background: rgba(232,160,32,.15);  color: var(--accent); }
+    .r-epic      { background: rgba(192,132,252,.15); color: var(--purple); }
+    .r-rare      { background: rgba(96,165,250,.15);  color: var(--blue); }
+    .r-uncommon  { background: rgba(74,222,128,.15);  color: var(--green); }
+    .r-common    { background: rgba(156,163,175,.12); color: #9ca3af; }
+    .r-unrated   { background: rgba(107,114,128,.12); color: var(--muted); }
+
+    .good { color: var(--green); font-weight: 600; }
+    .bad  { color: var(--red);   font-weight: 600; }
+    .flat { color: var(--muted); }
+
+    .yield { font-size: 0.78rem; line-height: 1.6; }
+    .yield .q { color: var(--accent); font-weight: 600; }
+
+    .verdict { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .empty { text-align: center; padding: 40px; color: var(--muted); font-size: 0.85rem; }
+
+    footer {
+      text-align: center; padding: 22px; border-top: 1px solid var(--border);
+      font-size: 0.75rem; color: var(--muted);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">Home</a>
+  <a href="events.html">Events</a>
+  <a href="arcs.html">ARC Units</a>
+  <a href="loot.html">Loot</a>
+  <a href="items.html">Items</a>
+  <a href="traders.html">Traders</a>
+  <a href="quests.html">Quests</a>
+  <a href="amplified.html">Amplified</a>
+  <a href="stash.html" class="active">Stash</a>
+</nav>
+
+<div class="page-header">
+  <h1>Stash Manager</h1>
+  <p>What to keep, what to recycle, and what earns its slot</p>
+</div>
+
+<div class="content">
+  <div class="status" id="status"><div class="spinner"></div>Loading…</div>
+
+  <div id="app" style="display:none">
+    <div class="tabs">
+      <button class="tab active" data-panel="recycle">Recycle or keep</button>
+      <button class="tab" data-panel="density">Value density</button>
+      <button class="tab" data-panel="reverse">Material sources</button>
+    </div>
+
+    <!-- ── RECYCLE OR KEEP ── -->
+    <div class="panel active" id="panel-recycle">
+      <p class="note">
+        Sell value of the item against the summed sell value of what it breaks into.
+        <strong>Positive means recycling gains value</strong>; negative means you lose
+        value and should only do it because you need the materials.
+        Slot cost folds in stack size — three Processors that stack 20 take far less
+        room than the part they came from.
+      </p>
+      <div class="controls">
+        <input type="text" id="rec-search" placeholder="Search item or material…" />
+        <span class="count" id="rec-count"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table id="rec-table">
+          <thead><tr>
+            <th data-sort="name">Item</th>
+            <th data-sort="value" class="num">Sell</th>
+            <th data-sort="yield" class="num">Yield value</th>
+            <th data-sort="delta" class="num">Difference</th>
+            <th data-sort="slots" class="num">Slots</th>
+            <th>Breaks into</th>
+          </tr></thead>
+          <tbody id="rec-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── VALUE DENSITY ── -->
+    <div class="panel" id="panel-density">
+      <p class="note">
+        What earns its space. <strong>Per kg</strong> is what to carry out of a raid;
+        <strong>per slot</strong> is what to keep in the stash, since a stack of 20
+        occupies one slot. Sort by any column.
+      </p>
+      <div class="controls">
+        <input type="text" id="den-search" placeholder="Search items…" />
+        <select id="den-type"><option value="all">All types</option></select>
+        <select id="den-rarity"><option value="all">All rarities</option></select>
+        <span class="count" id="den-count"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table id="den-table">
+          <thead><tr>
+            <th data-sort="name">Item</th>
+            <th data-sort="rarity">Rarity</th>
+            <th data-sort="value" class="num">Value</th>
+            <th data-sort="weight" class="num">kg</th>
+            <th data-sort="perkg" class="num">Per kg</th>
+            <th data-sort="stack" class="num">Stack</th>
+            <th data-sort="perslot" class="num">Per slot</th>
+          </tr></thead>
+          <tbody id="den-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── REVERSE LOOKUP ── -->
+    <div class="panel" id="panel-reverse">
+      <p class="note">
+        Need a material? This is everything known to break down into it, cheapest
+        source first by sell value given up per unit produced.
+      </p>
+      <div class="controls">
+        <select id="rev-material"></select>
+        <span class="count" id="rev-count"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Source item</th>
+            <th class="num">Yields</th>
+            <th class="num">Item value</th>
+            <th class="num">Cost per unit</th>
+            <th>Also yields</th>
+          </tr></thead>
+          <tbody id="rev-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Item data from <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener">metaforge.app</a>.
+  Recycling yields are hand-maintained — their API does not publish them.
+</footer>
+
+<script>
+  // ── RECYCLING RECIPES ───────────────────────────────────────────────────────
+  // metaforge publishes no recycling data: every per-item endpoint 404s and no
+  // parameter on /items exposes component relationships. So these are
+  // hand-maintained, keyed by catalogue item id, and incomplete by nature.
+  //
+  // To add one, find the item's id on the Items page and append:
+  //     'item-id': [{ n: 'Material Name', q: 3 }],
+  // Material names must match the catalogue exactly or the row is skipped
+  // (the console lists any that fail to resolve).
+  const RECIPES = {
+    'advanced-arc-powercell': [{n:'ARC Powercell',q:2}],
+    'arc-alloy':              [{n:'Metal Parts',q:2}],
+    'arc-circuitry':          [{n:'ARC Alloy',q:2}],
+    'arc-coolant':            [{n:'Chemicals',q:16}],
+    'arc-flex-rubber':        [{n:'Rubber Parts',q:16}],
+    'arc-motion-core':        [{n:'ARC Alloy',q:2}],
+    'arc-performance-steel':  [{n:'Metal Parts',q:12}],
+    'arc-synthetic-resin':    [{n:'Plastic Parts',q:14}],
+    'arc-thermo-lining':      [{n:'Fabric',q:16}],
+    'bastion-part':           [{n:'ARC Alloy',q:2}, {n:'Advanced Mechanical Components',q:2}],
+    'bombardier-cell':        [{n:'ARC Alloy',q:2}, {n:'Advanced Mechanical Components',q:2}],
+    'broken-guidance-system': [{n:'Processor',q:3}],
+    'comet-igniter':          [{n:'ARC Alloy',q:2}, {n:'Crude Explosives',q:2}],
+    'fireball-burner':        [{n:'ARC Alloy',q:1}, {n:'Crude Explosives',q:1}],
+    'firefly-burner':         [{n:'ARC Alloy',q:2}, {n:'Crude Explosives',q:2}],
+    'hornet-driver':          [{n:'ARC Alloy',q:2}, {n:'Electrical Components',q:2}],
+    'leaper-pulse-unit':      [{n:'ARC Alloy',q:3}, {n:'Advanced Mechanical Components',q:2}],
+    'magnetic-accelerator':   [{n:'Advanced Mechanical Components',q:1}, {n:'ARC Motion Core',q:1}],
+    'matriarch-reactor':      [{n:'Power Rod',q:1}, {n:'Magnetic Accelerator',q:1}],
+    'pop-trigger':            [{n:'ARC Alloy',q:1}, {n:'Crude Explosives',q:1}],
+    'queen-reactor':          [{n:'Power Rod',q:1}, {n:'Magnetic Accelerator',q:1}],
+    'rocketeer-part':         [{n:'ARC Alloy',q:3}, {n:'Advanced Electrical Components',q:2}],
+    'sentinel-part':          [{n:'ARC Alloy',q:2}, {n:'Mechanical Components',q:3}],
+    'shredder-gyro':          [{n:'ARC Alloy',q:3}, {n:'Mechanical Components',q:3}],
+    'simple-gun-parts':       [{n:'Metal Parts',q:2}],
+    'snitch-scanner':         [{n:'ARC Alloy',q:1}, {n:'Electrical Components',q:1}],
+    'spotter-relay':          [{n:'ARC Alloy',q:1}, {n:'Electrical Components',q:2}],
+    'surveyor-vault':         [{n:'ARC Alloy',q:2}, {n:'Mechanical Components',q:2}],
+    'tick-pod':               [{n:'ARC Alloy',q:2}, {n:'Chemicals',q:2}],
+    'wasp-driver':            [{n:'ARC Alloy',q:1}, {n:'Electrical Components',q:1}],
+  };
+
+  const CACHE_URL = './data/items.json';
+  const SOURCE    = 'https://metaforge.app/api/arc-raiders/items';
+  const PROXIES = [
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  ];
+
+  const RARITY_ORDER = { Amplified:0, Legendary:1, Epic:2, Rare:3, Uncommon:4, Common:5, Unrated:6 };
+
+  let items = [], byId = new Map(), byName = new Map();
+  let recipes = [];           // resolved, with value maths
+  let sortState = { recycle: {k:'delta', dir:-1}, density: {k:'perslot', dir:-1} };
+
+  const rarityOf = i => i.rarity || 'Unrated';
+  const weightOf = i => (i.stat_block || {}).weight || null;
+  const stackOf  = i => (i.stat_block || {}).stackSize || 1;
+  const fmt = n => n === null || n === undefined ? '—' : Math.round(n).toLocaleString();
+
+  async function fetchItems() {
+    try {
+      const res = await fetch(CACHE_URL, { cache: 'no-store' });
+      if (res.ok) {
+        const j = await res.json();
+        const rows = j.data || (Array.isArray(j) ? j : null);
+        if (rows && rows.length) return rows;
+      }
+    } catch (_) {}
+    for (const p of PROXIES) {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 8000);
+      try {
+        const res = await fetch(p(`${SOURCE}?limit=500&page=1`), {
+          headers: { Accept: 'application/json' }, cache: 'no-store', signal: ctl.signal });
+        clearTimeout(t);
+        if (!res.ok) continue;
+        const txt = (await res.text()).trim();
+        if (!txt.startsWith('{') && !txt.startsWith('[')) continue;
+        const j = JSON.parse(txt);
+        const rows = j.data || (Array.isArray(j) ? j : null);
+        if (rows && rows.length) return rows;
+      } catch (_) { clearTimeout(t); }
+    }
+    return null;
+  }
+
+  // Resolve each recipe against the catalogue, computing value and slot maths.
+  function buildRecipes() {
+    const unresolved = [];
+    const out = [];
+    for (const [id, yields] of Object.entries(RECIPES)) {
+      const src = byId.get(id);
+      if (!src) { unresolved.push(`source "${id}"`); continue; }
+      const parts = [];
+      let bad = false;
+      for (const y of yields) {
+        const mat = byName.get(y.n.toLowerCase());
+        if (!mat) { unresolved.push(`material "${y.n}" (in ${id})`); bad = true; continue; }
+        parts.push({ item: mat, qty: y.q });
+      }
+      if (bad || !parts.length) continue;
+
+      const yieldValue = parts.every(p => p.item.value)
+        ? parts.reduce((s, p) => s + p.qty * p.item.value, 0) : null;
+      // One source item occupies 1/stackSize of a slot; same for each material.
+      const srcSlots = 1 / stackOf(src);
+      const outSlots = parts.reduce((s, p) => s + p.qty / stackOf(p.item), 0);
+
+      out.push({
+        id, src, parts,
+        name: src.name,
+        value: src.value ?? null,
+        yield: yieldValue,
+        delta: (yieldValue !== null && src.value) ? yieldValue - src.value : null,
+        slots: outSlots - srcSlots,
+      });
+    }
+    if (unresolved.length) console.warn('Unresolved recipe entries:', unresolved);
+    return out;
+  }
+
+  // ── RECYCLE PANEL ───────────────────────────────────────────────────────────
+  function renderRecycle() {
+    const q = document.getElementById('rec-search').value.trim().toLowerCase();
+    let rows = recipes.filter(r => !q
+      || r.name.toLowerCase().includes(q)
+      || r.parts.some(p => p.item.name.toLowerCase().includes(q)));
+
+    const { k, dir } = sortState.recycle;
+    rows.sort((a, b) => {
+      const av = k === 'name' ? a.name : a[k], bv = k === 'name' ? b.name : b[k];
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return (typeof av === 'string' ? av.localeCompare(bv) : av - bv) * dir;
+    });
+
+    document.getElementById('rec-count').textContent =
+      `${rows.length} of ${recipes.length} known recipes`;
+
+    document.getElementById('rec-body').innerHTML = rows.length ? rows.map(r => {
+      const cls = r.delta === null ? 'flat' : r.delta > 0 ? 'good' : r.delta < 0 ? 'bad' : 'flat';
+      const verdict = r.delta === null ? '' : r.delta > 0 ? 'Recycle' : r.delta < 0 ? 'Keep whole' : 'Even';
+      return `<tr>
+        <td><div class="item-cell">
+          ${r.src.icon ? `<img class="item-icon" src="${esc(r.src.icon)}" alt="" onerror="this.style.display='none'">` : ''}
+          <div>
+            <div>${esc(r.name)}</div>
+            <div class="sub">${esc(r.src.item_type || '')}</div>
+          </div></div></td>
+        <td class="num">${fmt(r.value)}</td>
+        <td class="num">${fmt(r.yield)}</td>
+        <td class="num ${cls}">
+          ${r.delta === null ? '—' : (r.delta > 0 ? '+' : '') + fmt(r.delta)}
+          ${verdict ? `<div class="verdict ${cls}">${verdict}</div>` : ''}
+        </td>
+        <td class="num ${r.slots > 0 ? 'bad' : r.slots < 0 ? 'good' : 'flat'}">
+          ${r.slots > 0 ? '+' : ''}${r.slots.toFixed(2)}</td>
+        <td class="yield">${r.parts.map(p =>
+          `<span class="q">${p.qty}×</span> ${esc(p.item.name)}`).join('<br>')}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" class="empty">No matching recipes.</td></tr>';
+    markSorted('rec-table', sortState.recycle);
+  }
+
+  // ── DENSITY PANEL ───────────────────────────────────────────────────────────
+  function densityRows() {
+    return items.map(i => {
+      const w = weightOf(i), s = stackOf(i), v = i.value || null;
+      return {
+        item: i, name: i.name, rarity: rarityOf(i), value: v, weight: w, stack: s,
+        perkg: (v && w) ? v / w : null,
+        perslot: v ? v * s : null,
+      };
+    });
+  }
+
+  function renderDensity() {
+    const q = document.getElementById('den-search').value.trim().toLowerCase();
+    const t = document.getElementById('den-type').value;
+    const r = document.getElementById('den-rarity').value;
+    let rows = densityRows().filter(x =>
+      (t === 'all' || x.item.item_type === t) &&
+      (r === 'all' || x.rarity === r) &&
+      (!q || x.name.toLowerCase().includes(q)));
+
+    const { k, dir } = sortState.density;
+    rows.sort((a, b) => {
+      let av = a[k], bv = b[k];
+      if (k === 'rarity') { av = RARITY_ORDER[av] ?? 9; bv = RARITY_ORDER[bv] ?? 9; }
+      if (av === null || av === undefined) return 1;
+      if (bv === null || bv === undefined) return -1;
+      return (typeof av === 'string' ? av.localeCompare(bv) : av - bv) * dir;
+    });
+
+    document.getElementById('den-count').textContent = `${rows.length} of ${items.length} items`;
+    document.getElementById('den-body').innerHTML = rows.length ? rows.slice(0, 400).map(x => `
+      <tr>
+        <td><div class="item-cell">
+          ${x.item.icon ? `<img class="item-icon" src="${esc(x.item.icon)}" alt="" onerror="this.style.display='none'">` : ''}
+          <div><div>${esc(x.name)}</div><div class="sub">${esc(x.item.item_type || '')}</div></div>
+        </div></td>
+        <td><span class="pill r-${esc(x.rarity.toLowerCase())}">${esc(x.rarity)}</span></td>
+        <td class="num">${fmt(x.value)}</td>
+        <td class="num">${x.weight ?? '—'}</td>
+        <td class="num">${fmt(x.perkg)}</td>
+        <td class="num">${x.stack}</td>
+        <td class="num">${fmt(x.perslot)}</td>
+      </tr>`).join('') : '<tr><td colspan="7" class="empty">Nothing matches.</td></tr>';
+    markSorted('den-table', sortState.density);
+  }
+
+  // ── REVERSE LOOKUP ──────────────────────────────────────────────────────────
+  function renderReverse() {
+    const mat = document.getElementById('rev-material').value;
+    const rows = recipes
+      .filter(r => r.parts.some(p => p.item.name === mat))
+      .map(r => {
+        const p = r.parts.find(x => x.item.name === mat);
+        return { r, qty: p.qty, cost: r.value ? r.value / p.qty : null };
+      })
+      .sort((a, b) => (a.cost ?? Infinity) - (b.cost ?? Infinity));
+
+    document.getElementById('rev-count').textContent = `${rows.length} source${rows.length === 1 ? '' : 's'}`;
+    document.getElementById('rev-body').innerHTML = rows.length ? rows.map(({ r, qty, cost }) => `
+      <tr>
+        <td><div class="item-cell">
+          ${r.src.icon ? `<img class="item-icon" src="${esc(r.src.icon)}" alt="" onerror="this.style.display='none'">` : ''}
+          <div><div>${esc(r.name)}</div><div class="sub">${esc(r.src.item_type || '')}</div></div>
+        </div></td>
+        <td class="num"><span class="yield"><span class="q">${qty}×</span></span></td>
+        <td class="num">${fmt(r.value)}</td>
+        <td class="num">${fmt(cost)}</td>
+        <td class="yield">${r.parts.filter(p => p.item.name !== mat)
+          .map(p => `<span class="q">${p.qty}×</span> ${esc(p.item.name)}`).join('<br>') || '—'}</td>
+      </tr>`).join('') : '<tr><td colspan="5" class="empty">No known source.</td></tr>';
+  }
+
+  // ── SORTING / TABS ──────────────────────────────────────────────────────────
+  function markSorted(tableId, state) {
+    document.querySelectorAll(`#${tableId} th`).forEach(th => {
+      const on = th.dataset.sort === state.k;
+      th.classList.toggle('sorted', on);
+      const old = th.querySelector('.arrow');
+      if (old) old.remove();
+      if (on) {
+        const s = document.createElement('span');
+        s.className = 'arrow';
+        s.textContent = state.dir === 1 ? '▲' : '▼';
+        th.appendChild(s);
+      }
+    });
+  }
+
+  function wireSort(tableId, which, rerender) {
+    document.querySelectorAll(`#${tableId} th[data-sort]`).forEach(th => {
+      th.addEventListener('click', () => {
+        const k = th.dataset.sort, st = sortState[which];
+        if (st.k === k) st.dir *= -1; else { st.k = k; st.dir = k === 'name' ? 1 : -1; }
+        rerender();
+      });
+    });
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  async function init() {
+    const rows = await fetchItems();
+    if (!rows) {
+      const el = document.getElementById('status');
+      el.innerHTML = '&#9888; Could not load item data.';
+      return;
+    }
+    items = rows;
+    byId = new Map(items.map(i => [i.id, i]));
+    byName = new Map(items.map(i => [i.name.toLowerCase(), i]));
+    recipes = buildRecipes();
+
+    // Facets
+    const types = [...new Set(items.map(i => i.item_type).filter(Boolean))].sort();
+    document.getElementById('den-type').innerHTML =
+      '<option value="all">All types</option>' + types.map(t => `<option>${esc(t)}</option>`).join('');
+    const rars = [...new Set(items.map(rarityOf))].sort((a,b) => (RARITY_ORDER[a]??9)-(RARITY_ORDER[b]??9));
+    document.getElementById('den-rarity').innerHTML =
+      '<option value="all">All rarities</option>' + rars.map(r => `<option>${esc(r)}</option>`).join('');
+    const mats = [...new Set(recipes.flatMap(r => r.parts.map(p => p.item.name)))].sort();
+    document.getElementById('rev-material').innerHTML = mats.map(m => `<option>${esc(m)}</option>`).join('');
+
+    // Events
+    document.getElementById('rec-search').addEventListener('input', renderRecycle);
+    document.getElementById('den-search').addEventListener('input', renderDensity);
+    document.getElementById('den-type').addEventListener('change', renderDensity);
+    document.getElementById('den-rarity').addEventListener('change', renderDensity);
+    document.getElementById('rev-material').addEventListener('change', renderReverse);
+    wireSort('rec-table', 'recycle', renderRecycle);
+    wireSort('den-table', 'density', renderDensity);
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+        document.querySelectorAll('.panel').forEach(p =>
+          p.classList.toggle('active', p.id === `panel-${tab.dataset.panel}`));
+      });
+    });
+
+    renderRecycle();
+    renderDensity();
+    renderReverse();
+    document.getElementById('status').style.display = 'none';
+    document.getElementById('app').style.display = '';
+  }
+
+  init();
+</script>
+</body>
+</html>

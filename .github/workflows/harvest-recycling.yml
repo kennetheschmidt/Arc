@@ -1,0 +1,141 @@
+name: Harvest Recycling Data
+
+# Manual only. Recycling yields are static until a game patch, so run this
+# after a patch, not on a schedule.
+#
+# The bulk /items endpoint carries no recycling data; it lives in per-item
+# files on metaforge's CDN. This probes the known URL patterns, reports the
+# shape it finds, then harvests every item into data/recycling.json.
+on:
+  workflow_dispatch:
+    inputs:
+      probe_only:
+        description: 'Probe a few items and report the shape, without harvesting'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Probe and harvest
+        env:
+          PROBE_ONLY: ${{ inputs.probe_only }}
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request, urllib.error
+
+          probe_only = os.environ.get('PROBE_ONLY') == 'true'
+          items = json.load(open('data/items.json'))['data']
+          print(f'catalogue: {len(items)} items')
+
+          PATTERNS = [
+              ('static-cdn', 'https://static.metaforge.app/arc-raiders/data/items/{id}.json'),
+              ('cdn',        'https://cdn.metaforge.app/arc-raiders/data/{id}.json'),
+              ('api-items',  'https://metaforge.app/api/arc-raiders/items/{id}'),
+              ('api-item',   'https://metaforge.app/api/arc-raiders/item/{id}'),
+          ]
+          # Keys the loot modal looks for; we keep whatever actually turns up.
+          RECYCLE_HINTS = ('recycle', 'recycles', 'recycling', 'recycled',
+                           'recycles_into', 'recycled_from', 'materials',
+                           'used_in', 'crafting', 'ingredient', 'components')
+
+          def get(url):
+              req = urllib.request.Request(url, headers={
+                  'Accept': 'application/json',
+                  'User-Agent': 'github.com/kennetheschmidt/Arc (static site cache)',
+              })
+              with urllib.request.urlopen(req, timeout=20) as r:
+                  return json.loads(r.read().decode())
+
+          def unwrap(doc):
+              return doc.get('data', doc) if isinstance(doc, dict) else doc
+
+          # --- 1. find a pattern that returns recycling-ish data ---
+          samples = [i['id'] for i in items[:40]]
+          winner = None
+          for label, pat in PATTERNS:
+              hits = 0
+              shape = None
+              for iid in samples[:8]:
+                  try:
+                      d = unwrap(get(pat.format(id=iid)))
+                  except Exception as e:
+                      continue
+                  if not isinstance(d, dict):
+                      continue
+                  keys = [k for k in d if any(h in k.lower() for h in RECYCLE_HINTS)]
+                  if keys:
+                      hits += 1
+                      if shape is None:
+                          shape = (iid, sorted(d.keys()), {k: d[k] for k in keys})
+                  time.sleep(0.3)
+              print(f'  {label:12} recycling-bearing responses: {hits}/8')
+              if hits and winner is None:
+                  winner = (label, pat, shape)
+
+          if not winner:
+              print('\nNo pattern returned recycling data. Raw first response per pattern:')
+              for label, pat in PATTERNS:
+                  try:
+                      d = get(pat.format(id=samples[0]))
+                      print(f'\n--- {label} ---')
+                      print(json.dumps(d, indent=2)[:1200])
+                  except Exception as e:
+                      print(f'\n--- {label} --- failed: {e}')
+              raise SystemExit('no recycling source found')
+
+          label, pat, shape = winner
+          iid, allkeys, found = shape
+          print(f'\nusing pattern: {label}')
+          print(f'sample item  : {iid}')
+          print(f'all keys     : {allkeys}')
+          print(f'\nrecycling-ish fields on that item:')
+          print(json.dumps(found, indent=2)[:1500])
+
+          if probe_only:
+              raise SystemExit(0)
+
+          # --- 2. harvest every item ---
+          out, ok, miss = {}, 0, 0
+          for n, it in enumerate(items, 1):
+              iid = it['id']
+              try:
+                  d = unwrap(get(pat.format(id=iid)))
+              except Exception:
+                  miss += 1
+                  time.sleep(0.2)
+                  continue
+              if isinstance(d, dict):
+                  rec = {k: v for k, v in d.items()
+                         if any(h in k.lower() for h in RECYCLE_HINTS) and v}
+                  if rec:
+                      rec['name'] = it['name']
+                      out[iid] = rec
+                      ok += 1
+              if n % 100 == 0:
+                  print(f'  {n}/{len(items)}  with data: {ok}  failed: {miss}')
+              time.sleep(0.25)
+
+          print(f'\nharvested {ok} items with recycling data ({miss} requests failed)')
+          with open('data/recycling.json', 'w') as f:
+              json.dump({'source': label, 'items': out}, f)
+          print('wrote data/recycling.json')
+          PY
+
+      - name: Commit
+        if: ${{ !inputs.probe_only }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/recycling.json
+          git diff --quiet --cached || git commit -m "chore: harvest recycling data [skip ci]"
+          git push

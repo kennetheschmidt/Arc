@@ -192,11 +192,13 @@
     <!-- ── RECYCLE OR KEEP ── -->
     <div class="panel active" id="panel-recycle">
       <p class="note">
-        Sell value of the item against the summed sell value of what it breaks into.
-        <strong>Positive means recycling gains value</strong>; negative means you lose
-        value and should only do it because you need the materials.
-        Slot cost folds in stack size — three Processors that stack 20 take far less
-        room than the part they came from.
+        Ranked by what recycling does to your <strong>stash space</strong>. A ratio
+        below 1.00× means the materials pack tighter than the item and recycling
+        frees room; above 1.00× means the item is the denser way to store it.
+        Value per slot is the same comparison in currency — what a full slot of
+        each form is worth. Broken Guidance System stacks 3 and yields Processors
+        that stack 5, so recycling it costs 1.80× the room and leaves each slot
+        worth 2,500 instead of 6,000.
       </p>
       <div class="controls">
         <input type="text" id="rec-search" placeholder="Search item or material…" />
@@ -206,10 +208,11 @@
         <table id="rec-table">
           <thead><tr>
             <th data-sort="name">Item</th>
-            <th data-sort="value" class="num">Sell</th>
-            <th data-sort="yield" class="num">Yield value</th>
-            <th data-sort="delta" class="num">Difference</th>
-            <th data-sort="slots" class="num">Slots</th>
+            <th data-sort="srcStack" class="num">Stack</th>
+            <th data-sort="ratio" class="num">Space to recycle</th>
+            <th data-sort="vpsWhole" class="num">Value / slot<br><span class="sub">whole</span></th>
+            <th data-sort="vpsRecycled" class="num">Value / slot<br><span class="sub">recycled</span></th>
+            <th data-sort="delta" class="num">Sell delta</th>
             <th>Breaks into</th>
           </tr></thead>
           <tbody id="rec-body"></tbody>
@@ -331,7 +334,7 @@
 
   let items = [], byId = new Map(), byName = new Map();
   let recipes = [];           // resolved, with value maths
-  let sortState = { recycle: {k:'delta', dir:-1}, density: {k:'perslot', dir:-1} };
+  let sortState = { recycle: {k:'ratio', dir:1}, density: {k:'perslot', dir:-1} };
 
   const rarityOf = i => i.rarity || 'Unrated';
   const weightOf = i => (i.stat_block || {}).weight || null;
@@ -383,17 +386,24 @@
 
       const yieldValue = parts.every(p => p.item.value)
         ? parts.reduce((s, p) => s + p.qty * p.item.value, 0) : null;
-      // One source item occupies 1/stackSize of a slot; same for each material.
-      const srcSlots = 1 / stackOf(src);
+
+      // One source item occupies 1/stackSize of a slot; likewise each material.
+      // The ratio of the two is the stash question: below 1 the materials pack
+      // tighter than the item, above 1 the item is the denser way to hold it.
+      const srcStack = stackOf(src);
+      const srcSlots = 1 / srcStack;
       const outSlots = parts.reduce((s, p) => s + p.qty / stackOf(p.item), 0);
 
       out.push({
-        id, src, parts,
+        id, src, parts, srcStack, srcSlots, outSlots,
         name: src.name,
         value: src.value ?? null,
         yield: yieldValue,
         delta: (yieldValue !== null && src.value) ? yieldValue - src.value : null,
-        slots: outSlots - srcSlots,
+        ratio: outSlots / srcSlots,
+        // What a full slot of each form is worth.
+        vpsWhole:    src.value ? src.value * srcStack : null,
+        vpsRecycled: yieldValue !== null && outSlots ? yieldValue / outSlots : null,
       });
     }
     if (unresolved.length) console.warn('Unresolved recipe entries:', unresolved);
@@ -419,8 +429,10 @@
       `${rows.length} of ${recipes.length} known recipes`;
 
     document.getElementById('rec-body').innerHTML = rows.length ? rows.map(r => {
-      const cls = r.delta === null ? 'flat' : r.delta > 0 ? 'good' : r.delta < 0 ? 'bad' : 'flat';
-      const verdict = r.delta === null ? '' : r.delta > 0 ? 'Recycle' : r.delta < 0 ? 'Keep whole' : 'Even';
+      const saves = r.ratio < 0.995, costs = r.ratio > 1.005;
+      const rc = saves ? 'good' : costs ? 'bad' : 'flat';
+      const verdict = saves ? 'Recycle' : costs ? 'Keep whole' : 'Same space';
+      const dc = r.delta === null ? 'flat' : r.delta > 0 ? 'good' : r.delta < 0 ? 'bad' : 'flat';
       return `<tr>
         <td><div class="item-cell">
           ${r.src.icon ? `<img class="item-icon" src="${esc(r.src.icon)}" alt="" onerror="this.style.display='none'">` : ''}
@@ -428,18 +440,20 @@
             <div>${esc(r.name)}</div>
             <div class="sub">${esc(r.src.item_type || '')}</div>
           </div></div></td>
-        <td class="num">${fmt(r.value)}</td>
-        <td class="num">${fmt(r.yield)}</td>
-        <td class="num ${cls}">
-          ${r.delta === null ? '—' : (r.delta > 0 ? '+' : '') + fmt(r.delta)}
-          ${verdict ? `<div class="verdict ${cls}">${verdict}</div>` : ''}
+        <td class="num">${r.srcStack}</td>
+        <td class="num ${rc}">
+          ${r.ratio.toFixed(2)}&times;
+          <div class="verdict ${rc}">${verdict}</div>
+          <div class="sub">${r.srcSlots.toFixed(2)} &rarr; ${r.outSlots.toFixed(2)} slots</div>
         </td>
-        <td class="num ${r.slots > 0 ? 'bad' : r.slots < 0 ? 'good' : 'flat'}">
-          ${r.slots > 0 ? '+' : ''}${r.slots.toFixed(2)}</td>
+        <td class="num">${fmt(r.vpsWhole)}</td>
+        <td class="num">${fmt(r.vpsRecycled)}</td>
+        <td class="num ${dc}">${r.delta === null ? '—' : (r.delta > 0 ? '+' : '') + fmt(r.delta)}</td>
         <td class="yield">${r.parts.map(p =>
-          `<span class="q">${p.qty}×</span> ${esc(p.item.name)}`).join('<br>')}</td>
+          `<span class="q">${p.qty}&times;</span> ${esc(p.item.name)}
+           <span class="sub">(stacks ${stackOf(p.item)})</span>`).join('<br>')}</td>
       </tr>`;
-    }).join('') : '<tr><td colspan="6" class="empty">No matching recipes.</td></tr>';
+    }).join('') : '<tr><td colspan="7" class="empty">No matching recipes.</td></tr>';
     markSorted('rec-table', sortState.recycle);
   }
 

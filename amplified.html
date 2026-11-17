@@ -344,12 +344,24 @@
     <section>
       <div class="section-head"><h2>How Amplification Works</h2></div>
       <div class="explainer">
-        Amplification turns a standard weapon into an <strong>Amplified</strong> variant.
+        Amplification is a fifth tier beyond IV. It gives the gun its own upgrade
+        tree, and <strong>every choice is permanent</strong> — some upgrades lock
+        others out for good.
         <ol>
-          <li>Complete a <strong>research task</strong> — each one studies a particular behaviour in the field.</li>
-          <li>Obtain the <strong>Amplification Module</strong> matching the base weapon's rarity. A module only unlocks amplification for its own tier.</li>
-          <li>Amplify the weapon to get the Amplified variant.</li>
+          <li>Unlock the <strong>Outpost</strong> and expand it to <strong>level 4</strong>.</li>
+          <li>Upgrade the <strong>Gunsmith to IV</strong> — 3 Radial Press, 3 Magnetic Accelerators and 1 Emperor Modulator, looted inside the fallen Emperor.</li>
+          <li>Build the <strong>Research Station to level 4</strong>, which unlocks its Amplified Research tab.</li>
+          <li>Get the weapon to <strong>tier IV</strong>, then Amplify it with an <strong>Amplification Module of its rarity</strong>. Durability goes 130 → 200.</li>
+          <li><strong>Research</strong> the upgrade, then buy it on the gun — each node costs materials of its own.</li>
         </ol>
+        <p style="margin-top:10px">
+          Up to <strong>five researches</strong> can run at once. Research points come from
+          studying research items at the station, which consumes them.
+          Looted amplified weapons arrive at about <strong>10 durability of 200</strong>,
+          so they are good for one fight. <strong>Amplified Fragments</strong> repair them —
+          recycling a spare module gives 7.
+          <strong>Stiletto and Bantam cannot be amplified.</strong>
+        </p>
       </div>
     </section>
 
@@ -357,7 +369,12 @@
       <div class="section-head">
         <h2>Amplification Modules</h2><span class="section-count" id="mod-count"></span>
       </div>
-      <p class="section-note">Each module tier unlocks amplification for one base-weapon rarity.</p>
+      <p class="section-note">
+        Each tier unlocks amplification for one base-weapon rarity. Modules drop
+        <strong>only from the Frigate and inside the fallen Emperor</strong> on
+        Pendola Pass, and all five Marks share the same drop rate — a Mk. V is no
+        rarer than a Mk. I.
+      </p>
       <table class="tier-table">
         <thead><tr><th>Module</th><th>Unlocks</th><th>Value</th><th>Weight</th></tr></thead>
         <tbody id="mod-rows"></tbody>
@@ -375,11 +392,29 @@
       <p class="legend">
         <span class="dot ok"></span><strong>Research tasks</strong> are transcribed from the
         game's own screens.<br>
-        <span class="dot no"></span><strong>Perk, applies-to and costs</strong> are community
-        notes and unverified — the in-game Step 1 screens don't show them.
+        <span class="dot ok"></span><strong>Perk and applies-to</strong> come from the
+        2.0 game files, via arcraidershub's Frozen Trail guide.<br>
+        <span class="dot no"></span><strong>Research costs</strong> are mostly undocumented —
+        5,000 points is the known pattern, but the ARC parts are confirmed for only
+        one project.
       </p>
       <div class="filters" id="res-filters"></div>
       <div class="grid" id="res-grid"></div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>Upgrade Trees</h2><span class="section-count" id="tree-count"></span>
+      </div>
+      <p class="section-note">
+        Every upgrade on every amplifiable weapon, from the 2.0 game files.
+        <strong>Exclusive</strong> means taking it closes the other path for good;
+        <strong>Needs</strong> means it sits below another node on the same pathway.
+        Upgrades marked <span class="chip">no research</span> are bought straight on
+        the gun — they have no research project.
+      </p>
+      <div class="filters" id="tree-filters"></div>
+      <div class="grid" id="tree-grid"></div>
     </section>
 
     <section>
@@ -394,7 +429,11 @@
       <div class="section-head">
         <h2>Research Items</h2><span class="section-count" id="ri-count"></span>
       </div>
-      <p class="section-note">Documents and components that turn up in the field.</p>
+      <p class="section-note">
+        Studied at the Research Station to produce research points; studying
+        consumes the item. The same points also buy blueprints and furniture
+        designs, so the Frigate feeds amplification twice — modules and points.
+      </p>
       <div class="grid" id="ri-grid"></div>
     </section>
 
@@ -402,7 +441,10 @@
 </div>
 
 <footer>
-  Data from <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener">metaforge.app</a>
+  Item data from <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener">metaforge.app</a>.
+  Upgrade trees, perks and prerequisites from
+  <a href="https://arcraidershub.com/guides/amplified-weapons-guide" target="_blank" rel="noopener">arcraidershub.com</a>
+  (Frozen Trail, 11 Oct 2026). Research tasks transcribed in game.
 </footer>
 
 <script>
@@ -417,123 +459,107 @@
 
   // Research project details, keyed by metaforge item id.
   //
-  // `tasks` and `oneRound` are transcribed from the game's own Step 1/2 screens
-  // and are authoritative. `perk`, `weapons`, `research` and `apply` come from
-  // community notes and are NOT verified - the in-game screens do not show
-  // them. A community list checked against these screenshots had 10 of 15
-  // objectives wrong, so treat the unverified fields with suspicion until
-  // someone confirms them from Step 2.
+  // `tasks` / `oneRound` are transcribed from the game's own Step 1/2 screens.
+  // `perk`, `weapons` and `effect` come from arcraidershub's Frozen Trail
+  // guide (11 Oct 2026), read out of the 2.0 game files.
+  // `research` / `apply` hold only what is documented - that guide says costs
+  // are still being filled in, so most are partly unknown rather than guessed.
+  //
+  // An earlier community dataset over-listed the weapons on three projects and
+  // merged in perks that have no research project at all; the game-file table
+  // replaces it.
   const RESEARCH_NOTES = {
     'beam-resonance-tech': {
       oneRound: true,
       tasks: ['Deal 1,500 damage to Vaporizers with an Equalizer in one round'],
       perk: 'Ramping Damage', weapons: ['Equalizer'],
-      research: '5,000 Research Points, 2\u00d7 Queen Reactors',
-      apply: '3\u00d7 Queen Reactors',
+      effect: 'Damage builds up while the beam stays on a target',
+      research: '5,000 research points + ARC parts',
     },
     'burst-assembly-recovery': {
       tasks: ['Destroy 3 Shredders with a Raider Tool'],
-      perk: 'Burst Fire Conversion', weapons: ['Burletta'],
-      research: '5,000 Research Points, High-tier tech components',
-      apply: 'Variable rare topside materials',
+      perk: 'Burst Fire', weapons: ['Burletta'],
+      effect: '+2 projectiles per burst (3-round burst)',
+      research: '5,000 research points + ARC parts',
     },
     'compact-combustion-charges': {
       tasks: ['Deal 3,000 damage with Blaze Grenades'],
       perk: 'Incendiary Grenades', weapons: ['Hullcracker', 'Rascal'],
-      research: '5,000 Research Points, 3\u00d7 Fossilized Lightning',
-      apply: 'Variable rare topside materials',
+      effect: 'Spreads fire when a grenade detonates on ARC',
+      research: '5,000 research points + ARC parts',
     },
     'embedded-blast-engineering': {
-      tasks: [
-        'Deal 1,000 Damage to Fireflies using Light Impact Grenades',
-        'Deal 1,000 Damage to Hornets using Light Impact Grenades',
-        'Deal 1,000 Damage to Fireballs using Light Impact Grenades',
-        'Deal 1,000 Damage to Surveyors using Light Impact Grenades',
-      ],
-      perk: 'X-Rounds (Explosive Armor-Crushing)', weapons: ['Kettle', 'Anvil', 'Bettina'],
-      research: '5,000 Research Points, High-tier ARC parts',
-      apply: 'Variable rare topside materials',
+      tasks: ['Deal 1,000 Damage to Fireflies using Light Impact Grenades', 'Deal 1,000 Damage to Hornets using Light Impact Grenades', 'Deal 1,000 Damage to Fireballs using Light Impact Grenades', 'Deal 1,000 Damage to Surveyors using Light Impact Grenades'],
+      perk: 'X-Rounds', weapons: ['Anvil', 'Bettina', 'Kettle'],
+      effect: 'Slightly more damage to Raiders, much more to ARC armor plating',
+      research: '5,000 research points + 5 Rocketeer Drivers',
+      apply: '3 Fossilized Lightning (on the Anvil)',
     },
     'extended-burst-cycles': {
       tasks: ['Deal 10,000 damage with a Burst Burletta or Charged Burst Aphelion'],
-      perk: 'Increased Burst Count', weapons: ['Aphelion', 'Burletta'],
-      research: '5,000 Research Points, High-tier tech components',
-      apply: 'Variable rare topside materials',
+      perk: 'Increased Burst', weapons: ['Aphelion', 'Burletta'],
+      effect: 'More projectiles per burst',
+      research: '5,000 research points + ARC parts',
     },
     'high-voltage-exposure': {
       tasks: ['Destroy 5 ARC Turbines'],
-      perk: 'Charged Burst / Anti-Shield', weapons: ['Aphelion', 'Kettle'],
-      research: '5,000 Research Points, High-tier tech components',
-      apply: 'Variable rare topside materials',
+      perk: 'Charged Burst', weapons: ['Aphelion'],
+      effect: 'Hold to charge, release to fire: the longer the charge, the more projectiles',
+      research: '5,000 research points + ARC parts',
     },
     'magazine-geometry-101': {
-      tasks: [
-        'Deal 15,000 damage to a Bastion with a Rattler',
-        'Destroy 1 Bastions with a Rattler',
-      ],
-      perk: 'Drum Mag (60-Round Capacity)', weapons: ['Rattler'],
-      research: '5,000 Research Points, High-tier tech components',
-      apply: 'Variable rare topside materials',
+      tasks: ['Deal 15,000 damage to a Bastion with a Rattler', 'Destroy 1 Bastions with a Rattler'],
+      perk: 'Drum Mag', weapons: ['Rattler'],
+      effect: '+40 magazine (64 rounds); +50% recoil, +30% dispersion, 10% slower ADS',
+      research: '5,000 research points + ARC parts',
     },
     'mobile-fire-grip-fittings': {
       oneRound: true,
-      tasks: [
-        'Visit the Electrical Substation',
-        'Visit the Truck Stop',
-        'Visit the Old Town',
-        'Visit the Almatera Station',
-        'Visit the Researcher Lodgings',
-        'Visit the Deep-Space Telescope',
-        'Visit the Commissary Supermarket',
-      ],
-      perk: 'Sprint Shooting Accuracy', weapons: ['Hairpin', 'Burletta', 'Canto', 'Rascal'],
-      research: '5,000 Research Points, High-tier tech components',
-      apply: 'Variable rare topside materials',
+      tasks: ['Visit the Electrical Substation', 'Visit the Truck Stop', 'Visit the Old Town', 'Visit the Almatera Station', 'Visit the Researcher Lodgings', 'Visit the Deep-Space Telescope', 'Visit the Commissary Supermarket'],
+      perk: 'Sprint Shooting', weapons: ['Burletta', 'Canto', 'Hairpin', 'Rascal'],
+      effect: 'Fire while sprinting',
+      research: '5,000 research points + ARC parts',
     },
     'shield-stress-testing': {
       tasks: ['Deal 700 damage to encountered Raiders'],
-      perk: 'Anti-Shield / Full-Auto Conversion', weapons: ['Kettle', 'Burletta'],
-      research: '5,000 Research Points, 2\u00d7 Matriarch Reactors',
-      apply: 'Variable rare topside materials',
+      perk: 'Anti-Shield', weapons: ['Kettle'],
+      effect: 'Breaks shields faster',
+      research: '5,000 research points + ARC parts',
     },
     'solid-core-casting-tech': {
       tasks: ['Destroy 50 Flying ARC using shotguns'],
       perk: 'Slug Rounds', weapons: ['Il Toro'],
-      research: '5,000 Research Points, 20\u00d7 Tick Pods',
-      apply: 'Variable rare topside materials',
+      effect: 'Fires one large, very high-damage projectile instead of buckshot',
+      research: '5,000 research points + ARC parts',
     },
     'targeted-component-trial': {
       tasks: ['Destroy 40 thrusters on flying ARC enemies'],
-      perk: 'Anti-Weak Point / Action Reload Count',
-      weapons: ['Equalizer', 'Osprey', 'Rattler', 'Renegade', 'Il Toro'],
-      research: '5,000 Research Points, High-tier tech components',
-      apply: 'Variable rare topside materials',
+      perk: 'Anti-Weak Point', weapons: ['Equalizer', 'Osprey'],
+      effect: 'More damage to ARC weak points, less to ARC armor plating',
+      research: '5,000 research points + ARC parts',
     },
     'thermite-tipped-rounds': {
       tasks: ['Destroy 30 Fireballs with Explosive Mines'],
-      perk: 'Incendiary Rounds', weapons: ['Rattler', 'Canto', 'Hairpin', 'Aphelion'],
-      research: '5,000 Research Points, 5\u00d7 Firefly Burners',
-      apply: 'Variable rare topside materials',
+      perk: 'Incendiary Rounds', weapons: ['Aphelion', 'Canto', 'Hairpin', 'Rattler'],
+      effect: 'Sets targets on fire (+5 burn damage/sec, +2s duration)',
+      research: '5,000 research points + ARC parts',
     },
     'top-mounted-optics-retrofittings': {
       oneRound: true,
-      tasks: [
-        "On Blue Gate, head to Pilgrim's Peak",
-        'Deal 1,000 Damage to ARC enemies using the Osprey',
-      ],
-      perk: 'Scoped (Magnified Sights)', weapons: ['Renegade', 'Jupiter'],
-      research: '5,000 Research Points, 14\u00d7 Snitch Scanners',
-      apply: 'Variable rare topside materials',
+      tasks: ['On Blue Gate, head to Pilgrim\'s Peak', 'Deal 1,000 Damage to ARC enemies using the Osprey'],
+      perk: 'Scoped', weapons: ['Jupiter', 'Renegade'],
+      effect: 'Adds a scope',
+      research: '5,000 research points + ARC parts',
     },
     'trigger-reset-systems': {
       tasks: ['Destroy 5 Skulkers with a Raider Tool'],
-      perk: 'Semi-Auto Conversion', weapons: ['Bettina', 'Hairpin'],
-      research: '5,000 Research Points, High-tier tech components',
-      apply: 'Variable rare topside materials',
+      perk: 'Semi-Auto', weapons: ['Bettina', 'Hairpin'],
+      effect: 'Semi-automatic fire',
+      research: '5,000 research points + ARC parts',
     },
   };
 
-  // Projects with no matching metaforge item.
+  // Not in metaforge's item data.
   const EXTRA_RESEARCH = [
     {
       name: 'Action Economy',
@@ -542,10 +568,96 @@
       oneRound: true,
       tasks: ['Deal 1,000 damage with a Hairpin'],
       perk: 'Ergonomic Bolt', weapons: ['Jupiter', 'Osprey'],
-      research: '5,000 Research Points, High-tier tech components',
-      apply: 'Variable rare topside materials',
+      effect: 'Work the bolt without leaving the scope',
+      research: '5,000 research points + ARC parts',
     },
   ];
+
+  // Upgrades with no research project in the 2.0 game files - bought straight
+  // on the weapon once it is amplified.
+  const NO_RESEARCH = ['Bigger Mag', 'More Reload', 'Mag Reload', 'High Velocity',
+                       'Tracker Rounds', 'Carbine Conversion', 'Full-Auto',
+                       'Anvil Splitter'];
+
+  // Per-weapon upgrade trees, from arcraidershub's reading of the 2.0 game
+  // files. "Needs" means the node sits below another on the same pathway;
+  // "Exclusive" means taking it blocks the other for good. None is reversible.
+  const WEAPON_TREES = {
+    'Anvil': [
+      ['X-Rounds', 'Exclusive with Anvil Splitter', 'Slightly more damage to Raiders, much more to ARC armor plating'],
+      ['Anvil Splitter', 'Exclusive with X-Rounds', 'Each round splits into 4 projectiles: +3 per shot, −70% projectile damage, −40% headshot multiplier, −30% base dispersion, −90% dispersion recovery, +40% ADS dispersion'],
+    ],
+    'Aphelion': [
+      ['Bigger Mag', '', 'Larger magazine'],
+      ['Charged Burst', '', 'Hold to charge, release to fire: the longer the charge, the more projectiles'],
+      ['Increased Burst', 'Needs Charged Burst', 'More projectiles per burst'],
+      ['Incendiary Rounds', '', 'Sets targets on fire'],
+    ],
+    'Bettina': [
+      ['Bigger Mag', 'Exclusive with Semi-Auto', '+15 magazine'],
+      ['Semi-Auto', 'Exclusive with Bigger Mag', 'Semi-automatic, +3 base damage'],
+      ['X-Rounds', 'Needs Semi-Auto', 'Explosive rounds: slightly more damage to Raiders, much more to ARC armor plating'],
+    ],
+    'Burletta': [
+      ['Burst Fire', 'Exclusive with Full-Auto', '+2 projectiles per burst (3-round burst)'],
+      ['Increased Burst', 'Needs Burst Fire', '+2 more projectiles (5-round burst), +3 magazine'],
+      ['Full-Auto', 'Exclusive with Burst Fire', 'Fully automatic: +60% fire rate, −2 base damage, −60% headshot multiplier, +50% recoil and dispersion, double dispersion recovery'],
+      ['Sprint Shooting', 'Combines with either', 'Fire while sprinting'],
+    ],
+    'Canto': [
+      ['Carbine Conversion', 'Exclusive with Sprint Shooting', 'Much better stability and accuracy, less agility'],
+      ['Sprint Shooting', 'Exclusive with Carbine Conversion', 'Fire while sprinting'],
+      ['Incendiary Rounds', 'Combines with either', 'Sets targets on fire'],
+    ],
+    'Equalizer': [
+      ['Bigger Mag', '', 'Larger magazine'],
+      ['Anti-Weak Point', 'Exclusive with Ramping Damage', 'More damage to ARC weak points, less to ARC armor plating'],
+      ['Ramping Damage', 'Exclusive with Anti-Weak Point', 'Damage builds up while the beam stays on a target'],
+    ],
+    'Hairpin': [
+      ['Semi-Auto', 'Pick one of Semi-Auto, Tracker Rounds, Incendiary Rounds', '+150% fire rate, −20% headshot multiplier, +40% spread per shot'],
+      ['Sprint Shooting', 'Needs Semi-Auto', 'Fire while sprinting'],
+      ['Tracker Rounds', 'Pick one (see Semi-Auto)', 'Targets you hit are revealed for 5 seconds'],
+      ['Incendiary Rounds', 'Pick one (see Semi-Auto)', '+5 burn damage per second, +2s burn duration'],
+    ],
+    'Hullcracker': [
+      ['Incendiary Grenades', '', 'Spreads fire when a grenade detonates on ARC. Epic, so it takes a Mk. IV module'],
+      ['Mag Reload', '', 'Reloads the whole magazine at once instead of one grenade at a time'],
+    ],
+    'Il Toro': [
+      ['More Reload', '', 'Loads more shells at a time, so reloads are faster'],
+      ['Slug Rounds', '', 'Fires one large, very high-damage projectile instead of buckshot'],
+    ],
+    'Jupiter': [
+      ['Bigger Mag', '', 'Larger magazine'],
+      ['Scoped', '', 'Adds a scope'],
+      ['Ergonomic Bolt', '', 'Work the bolt without leaving the scope'],
+    ],
+    'Kettle': [
+      ['Anti-Shield', '', 'Breaks shields faster'],
+      ['Full-Auto', '', 'Fully automatic, at the cost of accuracy and stability'],
+      ['X-Rounds', 'On its own: blocks Anti-Shield and Full-Auto', 'Explosive rounds: slightly more damage to Raiders, much more to ARC armor plating'],
+    ],
+    'Osprey': [
+      ['Ergonomic Bolt', 'Combines with either', 'Work the bolt without leaving the scope'],
+      ['Anti-Weak Point', 'Exclusive with Tracker Rounds', 'More damage to ARC weak points, less to ARC armor plating'],
+      ['Tracker Rounds', 'Exclusive with Anti-Weak Point', 'Targets you hit are revealed briefly'],
+    ],
+    'Rascal': [
+      ['High Velocity', '', 'Faster projectiles'],
+      ['Sprint Shooting', '', 'Fire while sprinting'],
+      ['Incendiary Grenades', '', 'Spreads fire when a grenade detonates on ARC'],
+    ],
+    'Rattler': [
+      ['More Reload', '', '+2 rounds per reload step (reloads 4 at a time)'],
+      ['Drum Mag', 'Needs More Reload', '+40 magazine (64 rounds); +50% vertical and horizontal recoil, +30% shot dispersion, 10% slower ADS'],
+      ['Incendiary Rounds', 'Combines with both', '+5 burn damage per second, +2s burn duration; magazine stays 24'],
+    ],
+    'Renegade': [
+      ['More Reload', '', '+1 round per reload step'],
+      ['Scoped', '', 'Adds a sniper scope; strong at mid to long range'],
+    ],
+  };
 
   let allItems = [];
   let ampFilter = 'all';
@@ -585,6 +697,8 @@
     renderModules();
     renderResearchFilters();
     renderResearch();
+    renderTreeFilters();
+    renderTrees();
     renderAmpFilters();
     renderAmplified();
     renderResearchItems();
@@ -663,11 +777,12 @@
           ${r.icon ? `<img class="card-icon" src="${esc(r.icon)}" alt="" onerror="this.style.display='none'">` : ''}
           <div>
             <div class="card-name">${esc(r.name)}</div>
-            ${r.perk ? `<div class="perk">${esc(r.perk)}<span class="unver">unverified</span></div>` : ''}
+            ${r.perk ? `<div class="perk">${esc(r.perk)}</div>` : ''}
           </div>
         </div>
 
         ${r.description ? `<div class="research-hint">${esc(r.description)}</div>` : ''}
+        ${r.effect ? `<div class="step"><span class="label">Effect</span>${esc(r.effect)}</div>` : ''}
 
         ${r.tasks && r.tasks.length ? `
           <div class="step verified">
@@ -678,19 +793,19 @@
 
         ${r.weapons && r.weapons.length ? `
           <div class="step">
-            <span class="label">Applies to <em>· unverified</em></span>
+            <span class="label">Applies to</span>
             <div class="meta-row">${r.weapons.map(w =>
               `<span class="chip cat">${esc(w)}</span>`).join('')}</div>
           </div>` : ''}
 
         ${r.research ? `
           <div class="step">
-            <span class="label">Step 2 · Research cost <em>· unverified</em></span>${esc(r.research)}
+            <span class="label">Step 2 · Research cost <em>· partly undocumented</em></span>${esc(r.research)}
           </div>` : ''}
 
         ${r.apply ? `
           <div class="step">
-            <span class="label">Weapon application <em>· unverified</em></span>${esc(r.apply)}
+            <span class="label">Upgrade node cost</span>${esc(r.apply)}
           </div>` : ''}
 
         ${!r.documented ? `
@@ -742,6 +857,76 @@
       </div>`).join('');
   }
 
+  // Research point values, from arcraidershub's guide (GamingMerchant's
+  // Outpost tour). Commons are described as smaller amounts without figures.
+  const RESEARCH_POINTS = {
+    'Frigate Diagnostic Node': 1000,
+    'ARC Data Module': 200,
+  };
+
+  // ── WEAPON TREES ──────────────────────────────────────────────────────────
+  let treeFilter = 'all';
+
+  function renderTreeFilters() {
+    const bar = document.getElementById('tree-filters');
+    bar.innerHTML = '';
+    const names = Object.keys(WEAPON_TREES).sort();
+    [['all', `All ${names.length} weapons`], ...names.map(n => [n, n])].forEach(([key, label]) => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn' + (key === treeFilter ? ' active' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', () => {
+        treeFilter = key;
+        bar.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+        renderTrees();
+      });
+      bar.appendChild(btn);
+    });
+  }
+
+  // Which research project, if any, grants a given upgrade.
+  function projectFor(perk) {
+    const all = [...Object.values(RESEARCH_NOTES), ...EXTRA_RESEARCH];
+    return all.find(r => r.perk === perk) || null;
+  }
+
+  function renderTrees() {
+    const names = Object.keys(WEAPON_TREES).sort()
+      .filter(n => treeFilter === 'all' || n === treeFilter);
+    const total = Object.values(WEAPON_TREES).reduce((a, v) => a + v.length, 0);
+    document.getElementById('tree-count').textContent =
+      `${Object.keys(WEAPON_TREES).length} weapons, ${total} upgrades`;
+
+    document.getElementById('tree-grid').innerHTML = names.map(w => {
+      const amp = allItems.find(i => i.name === `Amplified ${w}`);
+      return `<div class="card">
+        <div class="card-head">
+          ${amp && amp.icon ? `<img class="card-icon" src="${esc(amp.icon)}" alt="" onerror="this.style.display='none'">` : ''}
+          <div>
+            <div class="card-name">${esc(w)}</div>
+            ${amp && amp.subcategory ? `<div class="card-desc">${esc(amp.subcategory)}</div>` : ''}
+          </div>
+        </div>
+        ${WEAPON_TREES[w].map(([node, rule, effect]) => {
+          const proj = projectFor(node);
+          return `<div class="step">
+            <span class="label">${esc(node)}${rule ? ` <em>· ${esc(rule)}</em>` : ''}</span>
+            ${esc(effect)}
+            <div class="meta-row">${proj
+              ? `<span class="chip rarity-amplified">${esc(proj.name || projName(proj))}</span>`
+              : `<span class="chip">no research</span>`}</div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+  }
+
+  // RESEARCH_NOTES entries are keyed by id, so recover a display name.
+  function projName(proj) {
+    const hit = byType('Research').find(r => RESEARCH_NOTES[r.id] === proj);
+    return hit ? hit.name : '';
+  }
+
   // ── RESEARCH ITEMS ────────────────────────────────────────────────────────
   function renderResearchItems() {
     const ri = byType('Research Item').sort((a, b) => a.name.localeCompare(b.name));
@@ -756,6 +941,9 @@
         <div class="meta-row">
           ${i.rarity ? `<span class="chip rarity-${esc(String(i.rarity).toLowerCase())}">${esc(i.rarity)}</span>` : ''}
           ${i.value ? `<span class="chip value">${num(i.value)}</span>` : ''}
+          ${RESEARCH_POINTS[i.name]
+            ? `<span class="chip rarity-amplified">${num(RESEARCH_POINTS[i.name])} research pts</span>`
+            : `<span class="chip">points not documented</span>`}
         </div>
       </div>`).join('');
   }
